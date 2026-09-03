@@ -4,7 +4,7 @@ Gerüst. Wird am Samstag gefüllt, nicht am Samstag erfunden.
 
 ## Live-URL
 
-- **Produktion:** _(nach erstem Deployment eintragen)_
+- **Produktion:** _(noch offen — `npx vercel login`, dann `cd app && npx vercel --prod`)_
 - **QR-Code:** ausgedruckt am Tisch **und** auf der letzten Folie. Das ist der wichtigste
   Gegenstand des ganzen Tages — beim Community Voting stimmt niemand für etwas, das er nicht
   selbst angefasst hat.
