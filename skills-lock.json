@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "ars-dataset": {
+      "source": "BenjaminDerProgrammierer/ars-26-hackathon",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/ars-dataset/SKILL.md",
+      "computedHash": "1a64c81fe76282d55706425d13c3dc503d99d0cb3f50b4c6476e35e52341e5e4"
+    },
+    "design-ars-festival-ui": {
+      "source": "BenjaminDerProgrammierer/ars-26-hackathon",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/design-ars-festival-ui/SKILL.md",
+      "computedHash": "d92da09009cc4c939a184edc90ddef5e09bd9f85baf69d56764afab2917331cc"
+    },
+    "hackathon-datasets": {
+      "source": "BenjaminDerProgrammierer/ars-26-hackathon",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/hackathon-datasets/SKILL.md",
+      "computedHash": "1aeec1908f8db5750b518db2fde87ea152cae1d7df6c7d7901a127e5ae2af144"
+    },
+    "opendata-linz-converter": {
+      "source": "BenjaminDerProgrammierer/ars-26-hackathon",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/opendata-linz-converter/SKILL.md",
+      "computedHash": "127906211f557f103b314f89efe8cfe0ddb371d1520650460fe212e256f04818"
+    }
+  }
+}

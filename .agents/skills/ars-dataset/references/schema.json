@@ -1,0 +1,775 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ars.electronica.art/festival2026/schema",
+  "title": "Ars Electronica Festival 2026 Dataset",
+  "description": "Schema for the four interconnected databases of the Ars Electronica Festival 2026. Personal contact details have been removed for data protection reasons.",
+  "type": "object",
+  "required": ["_meta", "projects", "contacts", "locations", "calendar"],
+  "properties": {
+    "_meta": {
+      "type": "object",
+      "description": "Metadata about the export",
+      "required": ["source", "website", "author", "generated_at", "encoding", "schema_version", "export_filter", "usage", "quality", "databases"],
+      "properties": {
+        "source":       { "type": "string" },
+        "website":      { "type": "string" },
+        "author":       { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "encoding":     { "type": "string" },
+        "schema_version": { "type": "string" },
+        "export_filter": { "type": "string" },
+        "usage": {
+          "type": "object",
+          "description": "Authoritative join, calendar, visibility and id-source rules",
+          "additionalProperties": { "type": "string" }
+        },
+        "quality": {
+          "type": "object",
+          "description": "Machine-readable data-quality warnings and counts"
+        },
+        "databases": {
+          "type": "object",
+          "required": ["projects", "contacts", "locations", "calendar"],
+          "properties": {
+            "projects":  { "$ref": "#/$defs/DatabaseMetadata" },
+            "contacts":  { "$ref": "#/$defs/DatabaseMetadata" },
+            "locations": { "$ref": "#/$defs/DatabaseMetadata" },
+            "calendar":  { "$ref": "#/$defs/DatabaseMetadata" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "projects": {
+      "type": "array",
+      "description": "Central database of all projects, collections and events.",
+      "items": {
+        "$ref": "#/$defs/Project"
+      }
+    },
+
+    "contacts": {
+      "type": "array",
+      "description": "Artists, speakers, institutions and project partners.",
+      "items": {
+        "$ref": "#/$defs/Contact"
+      }
+    },
+
+    "locations": {
+      "type": "array",
+      "description": "Event venues, hierarchically organised as Building → Floor → Room.",
+      "items": {
+        "$ref": "#/$defs/Location"
+      }
+    },
+
+    "calendar": {
+      "type": "array",
+      "description": "Individual event time slots, either linked to one project or explicitly unassigned.",
+      "items": {
+        "$ref": "#/$defs/CalendarEntry"
+      }
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+
+    "DatabaseMetadata": {
+      "type": "object",
+      "required": ["description", "count"],
+      "properties": {
+        "description": { "type": "string" },
+        "count":       { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+
+    "NullableString": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableDateTime": {
+      "oneOf": [
+        { "type": "string", "format": "date-time" },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableHttpUrl": {
+      "oneOf": [
+        { "type": "string", "pattern": "^https?://" },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableCanonicalIdArray": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CanonicalId" }
+        },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableLatitude": {
+      "oneOf": [
+        { "type": "number", "minimum": -90, "maximum": 90 },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableLongitude": {
+      "oneOf": [
+        { "type": "number", "minimum": -180, "maximum": 180 },
+        { "type": "null" }
+      ]
+    },
+
+    "NullableBoolean": {
+      "oneOf": [
+        { "type": "boolean" },
+        { "type": "null" }
+      ]
+    },
+
+    "CanonicalId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "Unique bare 32-character hexadecimal join key"
+    },
+
+    "IdSource": {
+      "type": "string",
+      "enum": ["notion", "derived"]
+    },
+
+    "VisibilityRule": {
+      "type": "string",
+      "enum": ["public", "hidden", "internal_marker", "offline"]
+    },
+
+    "NormalizedStatus": {
+      "type": "string",
+      "enum": ["pending", "not ready", "ready for web", "ready for upload", "new image needed", "done", "not needed", "offline"]
+    },
+
+    "VisibilityInvariant": {
+      "allOf": [
+        {
+          "if": { "properties": { "visibility_rule": { "const": "public" } } },
+          "then": {
+            "properties": {
+              "public_for_hackathon": { "const": true },
+              "link_allowed": { "const": true }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "visibility_rule": { "const": "offline" } } },
+          "then": {
+            "properties": {
+              "public_for_hackathon": { "const": true },
+              "link_allowed": { "const": false }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "visibility_rule": { "enum": ["hidden", "internal_marker"] }
+            }
+          },
+          "then": {
+            "properties": {
+              "public_for_hackathon": { "const": false },
+              "link_allowed": { "const": false }
+            }
+          }
+        }
+      ]
+    },
+
+    "Project": {
+      "type": "object",
+      "description": "A project, exhibition, event, collection or other programme item.",
+      "allOf": [{ "$ref": "#/$defs/VisibilityInvariant" }],
+      "required": ["id", "canonical_id", "id_source", "Name EN", "Curatorial Highlight", "Timetable", "Status Web", "status_web", "visibility_rule", "public_for_hackathon", "link_allowed", "calendar_ids", "Web Link"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier in format Category-Hash",
+          "examples": ["Exhibitions-34238ddb450c80148969ee9a7a1f1354"]
+        },
+        "canonical_id": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "id_source": {
+          "$ref": "#/$defs/IdSource"
+        },
+        "Name EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Project title in English"
+        },
+        "Name DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Project title in German"
+        },
+        "Category": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": ["Collection","Project","Exhibition","Guided Tour","Workshop","Symposium","Conference","Keynote","Lecture & Talk","Networking Event","Panel Discussion","Performance","Concert","Experience","Event","Meet the Artist","Open Lab","Award Ceremony","Screening","Deep Dive"]
+            },
+            { "type": "null" }
+          ],
+          "description": "Type of project"
+        },
+        "Artists": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Artist name(s) with country code(s), format: Name (CC), Name2 (CC2)"
+        },
+        "Subtitle EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Subtitle in English"
+        },
+        "Subtitle DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Subtitle in German"
+        },
+        "Web Preview Text EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Short summary for listings, max. 300 characters"
+        },
+        "Web Preview Text DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Short summary in German"
+        },
+        "Description EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full project description in English"
+        },
+        "Description DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full project description in German"
+        },
+        "Web Link": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Festival website URL; source status markers such as 'offline' are normalized to null"
+        },
+        "Credits short": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Short credits for print/signage, max. 500 characters"
+        },
+        "Credits long": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full credits for website"
+        },
+        "Funding Line": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Funding acknowledgement text"
+        },
+        "Curatorial Highlight": {
+          "type": "string",
+          "enum": ["Yes", "No"],
+          "description": "Whether the project is a curated highlight"
+        },
+        "Website": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Project or artist website URL"
+        },
+        "Website Secondary": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Secondary website URL"
+        },
+        "Instagram": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Instagram profile URL"
+        },
+        "Facebook": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Facebook profile URL"
+        },
+        "LinkedIn": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "LinkedIn profile URL"
+        },
+        "Video URL": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "YouTube or Vimeo link (publicly accessible)"
+        },
+        "Linked Parent": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Parent project canonical IDs – references projects[].canonical_id"
+        },
+        "Linked Child": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Child project canonical IDs – references projects[].canonical_id"
+        },
+        "Linked Contacts": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Contact canonical IDs – references contacts[].canonical_id"
+        },
+        "Linked Location": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Location canonical IDs – references locations[].canonical_id"
+        },
+        "Linked Calendar": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Calendar canonical IDs – references calendar[].canonical_id"
+        },
+        "calendar_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CanonicalId" },
+          "description": "Complete reverse relation derived from the authoritative calendar"
+        },
+        "Linked Ticket": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Required ticket type(s), comma-separated. Use 'FREE ACCESS' for free events."
+        },
+        "Times": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Human-readable schedule summary (rollup from calendar entries)"
+        },
+        "Recommended Arrival": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Minutes before event start that visitors should arrive"
+        },
+        "Registration URLs": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Registration link(s), comma-separated"
+        },
+        "Language": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Event language(s), comma-separated. Known tokens: EN, DE, nonverbal, other, FR"
+        },
+        "Max Participants": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Maximum number of participants (numeric string)"
+        },
+        "Event notes": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Access requirements and visitor warnings, e.g. 'Registration required'"
+        },
+        "Additional Info EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Extra visitor info in English: target audience, equipment, accessibility"
+        },
+        "Additional Info DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Extra visitor info in German"
+        },
+        "Timetable": {
+          "type": "string",
+          "enum": ["Yes", "No"],
+          "description": "Whether child projects should be displayed as a timetable"
+        },
+        "Status Web": {
+          "type": "string",
+          "enum": ["pending", "not ready", "ready for web", "new image needed", "done", "not needed"],
+          "description": "Publication status on the festival website"
+        },
+        "status_web": {
+          "$ref": "#/$defs/NormalizedStatus"
+        },
+        "visibility_rule": {
+          "$ref": "#/$defs/VisibilityRule"
+        },
+        "public_for_hackathon": {
+          "type": "boolean"
+        },
+        "link_allowed": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "Contact": {
+      "type": "object",
+      "description": "An artist, speaker, group, institution or project partner.",
+      "allOf": [{ "$ref": "#/$defs/VisibilityInvariant" }],
+      "required": ["id", "canonical_id", "id_source", "Status Web", "status_web", "visibility_rule", "public_for_hackathon", "link_allowed"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier in format SlugifiedName-Hash"
+        },
+        "canonical_id": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "id_source": {
+          "$ref": "#/$defs/IdSource"
+        },
+        "Name EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Name in English"
+        },
+        "Name DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "German name (institutions only, if different from English)"
+        },
+        "Category": {
+          "oneOf": [
+            { "type": "string", "enum": ["Person", "Group", "Organization"] },
+            { "type": "null" }
+          ],
+          "description": "Type of contact"
+        },
+        "Pronouns": {
+          "oneOf": [
+            { "type": "string", "enum": ["she/her", "he/him", "they/them", "she/her, they/them", "he/him, she/her", "he/him, they/them", "other, she/her", "other"] },
+            { "type": "null" }
+          ],
+          "description": "Pronouns (individuals only)"
+        },
+        "Country": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Country of origin, format: CC CountryName (e.g. AT Austria)"
+        },
+        "Description EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Biography or institutional description in English, max. 500 characters"
+        },
+        "Description DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Description in German"
+        },
+        "Linked Projects": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Associated project canonical IDs – references projects[].canonical_id"
+        },
+        "Status Web": {
+          "type": "string",
+          "enum": ["pending", "not ready", "not needed", "ready for upload", "new image needed", "done"],
+          "description": "Publication status"
+        },
+        "Website": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Personal or organisational website URL"
+        },
+        "Instagram": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Instagram profile URL"
+        },
+        "Facebook": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Facebook profile URL"
+        },
+        "LinkedIn": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "LinkedIn profile URL"
+        },
+        "status_web": {
+          "$ref": "#/$defs/NormalizedStatus"
+        },
+        "visibility_rule": {
+          "$ref": "#/$defs/VisibilityRule"
+        },
+        "public_for_hackathon": {
+          "type": "boolean"
+        },
+        "link_allowed": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "Location": {
+      "type": "object",
+      "description": "An event venue. Locations are hierarchical: Building → Floor → Room.",
+      "allOf": [{ "$ref": "#/$defs/VisibilityInvariant" }],
+      "required": ["id", "canonical_id", "id_source", "Status Web", "status_web", "visibility_rule", "public_for_hackathon", "link_allowed", "coordinates_ok"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier (hash)"
+        },
+        "canonical_id": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "id_source": {
+          "$ref": "#/$defs/IdSource"
+        },
+        "Name EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Location name in English"
+        },
+        "Name DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Location name in German"
+        },
+        "Type": {
+          "oneOf": [
+            { "type": "string", "enum": ["Building", "Floor", "Room", "Outdoor", "Online"] },
+            { "type": "null" }
+          ],
+          "description": "Type of venue"
+        },
+        "Description EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Short description in English, max. 100 characters"
+        },
+        "Description DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Short description in German"
+        },
+        "Services": {
+          "$ref": "#/$defs/NullableString",
+          "description": "On-site services, comma-separated. Values: Ticket Sales, Ticket Pick-Up, Accreditation Pick-Up, Press Pick-Up, Shop, Program Info"
+        },
+        "Breadcrumb EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full hierarchical path in English, e.g. 'Ars Electronica Center, EG, Deep Space 8K'"
+        },
+        "Breadcrumb DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full hierarchical path in German"
+        },
+        "Area": {
+          "oneOf": [
+            { "type": "string", "enum": ["OK QUARTER", "MED CAMPUS", "DANUBE TRIANGLE", "EVENT LOCATIONS"] },
+            { "type": "null" }
+          ],
+          "description": "Festival zone"
+        },
+        "Place": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full address as plain text"
+        },
+        "Latitude": {
+          "$ref": "#/$defs/NullableLatitude",
+          "description": "WGS84 latitude as a JSON number"
+        },
+        "Longitude": {
+          "$ref": "#/$defs/NullableLongitude",
+          "description": "WGS84 longitude as a JSON number"
+        },
+        "Address": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Street address"
+        },
+        "Additional Info EN": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Additional visitor notes in English (null for all entries in this export)"
+        },
+        "Additional Info DE": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Additional visitor notes in German (null for all entries in this export)"
+        },
+        "Web Link": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "URL of the location page on the festival website"
+        },
+        "Link Map": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "OpenStreetMap link generated from coordinates"
+        },
+        "Website": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Location's own website URL"
+        },
+        "Instagram": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Instagram profile URL"
+        },
+        "Facebook": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Facebook profile URL"
+        },
+        "LinkedIn": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "LinkedIn profile URL"
+        },
+        "Linked Projects": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Project canonical IDs – references projects[].canonical_id (null for all entries in this export)"
+        },
+        "Linked Parent": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Parent location canonical ID – references locations[].canonical_id"
+        },
+        "Linked Child": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Child location canonical IDs – references locations[].canonical_id"
+        },
+        "Status Web": {
+          "$ref": "#/$defs/NormalizedStatus"
+        },
+        "status_web": {
+          "$ref": "#/$defs/NormalizedStatus"
+        },
+        "visibility_rule": {
+          "$ref": "#/$defs/VisibilityRule"
+        },
+        "public_for_hackathon": {
+          "type": "boolean"
+        },
+        "link_allowed": {
+          "type": "boolean"
+        },
+        "coordinates_ok": {
+          "$ref": "#/$defs/NullableBoolean"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "CalendarEntry": {
+      "type": "object",
+      "description": "A single time slot, either assigned to a project or explicitly unassigned.",
+      "required": ["id", "canonical_id", "id_source", "Linked Projects", "Status Web", "start_at", "end_at", "status_web", "visibility_rule", "public_for_hackathon", "link_allowed", "project_ref", "slot_status"],
+      "allOf": [
+        { "$ref": "#/$defs/VisibilityInvariant" },
+        {
+          "if": {
+            "properties": { "slot_status": { "const": "assigned" } }
+          },
+          "then": {
+            "properties": {
+              "project_ref": { "$ref": "#/$defs/CanonicalId" },
+              "Linked Projects": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1,
+                "items": { "$ref": "#/$defs/CanonicalId" }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "slot_status": { "const": "unassigned" } }
+          },
+          "then": {
+            "properties": {
+              "project_ref": { "type": "null" },
+              "Linked Projects": { "type": "null" }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier (hash)"
+        },
+        "canonical_id": {
+          "$ref": "#/$defs/CanonicalId"
+        },
+        "id_source": {
+          "$ref": "#/$defs/IdSource"
+        },
+        "Linked Projects": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Associated project canonical ID; one element when assigned, null when unassigned. References projects[].canonical_id"
+        },
+        "Status Web": {
+          "type": "string",
+          "enum": ["pending", "done"],
+          "description": "Publication status"
+        },
+        "Time": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Full time range as human-readable string, e.g. '9. September 2026 15:15 (MESZ) → 16:15'"
+        },
+        "start_at": {
+          "$ref": "#/$defs/NullableDateTime",
+          "description": "Machine-readable start datetime in ISO 8601 format with UTC offset; null when no date could be parsed"
+        },
+        "end_at": {
+          "$ref": "#/$defs/NullableDateTime",
+          "description": "Machine-readable end datetime in ISO 8601 format with UTC offset; null when no end could be parsed"
+        },
+        "Arrive by": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Recommended arrival time as human-readable string"
+        },
+        "Registration URL": {
+          "$ref": "#/$defs/NullableHttpUrl",
+          "description": "Registration link for this specific time slot"
+        },
+        "Category": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Project category, inherited from linked project (rollup)"
+        },
+        "Linked Location": {
+          "$ref": "#/$defs/NullableCanonicalIdArray",
+          "description": "Venue canonical IDs, inherited from linked project – references locations[].canonical_id"
+        },
+        "Language": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Event language(s), inherited from linked project (rollup)"
+        },
+        "Recommended Arrival": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Minutes before event start that visitors should arrive (numeric string)"
+        },
+        "Duration": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Event duration in minutes (numeric string)"
+        },
+        "Event before": {
+          "type": "null",
+          "description": "Null for all entries in this export"
+        },
+        "Event afterwards": {
+          "type": "null",
+          "description": "Null for all entries in this export"
+        },
+        "Weekday": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Day label, e.g. 'Sep 9, MITTWOCH'"
+        },
+        "Start Time": {
+          "$ref": "#/$defs/NullableString",
+          "description": "Start time in HH:MM format"
+        },
+        "End Time": {
+          "$ref": "#/$defs/NullableString",
+          "description": "End time in HH:MM format"
+        },
+        "Highlight": {
+          "oneOf": [
+            { "type": "string", "enum": ["Yes", "No"] },
+            { "type": "null" }
+          ],
+          "description": "Whether this is a curatorial highlight, inherited from linked project"
+        },
+        "status_web": {
+          "$ref": "#/$defs/NormalizedStatus"
+        },
+        "visibility_rule": {
+          "$ref": "#/$defs/VisibilityRule"
+        },
+        "public_for_hackathon": {
+          "type": "boolean"
+        },
+        "link_allowed": {
+          "type": "boolean"
+        },
+        "project_ref": {
+          "oneOf": [
+            { "$ref": "#/$defs/CanonicalId" },
+            { "type": "null" }
+          ],
+          "description": "Scalar authoritative project relation, null for unassigned slots"
+        },
+        "slot_status": {
+          "type": "string",
+          "enum": ["assigned", "unassigned"]
+        }
+      },
+      "additionalProperties": false
+    }
+
+  }
+}

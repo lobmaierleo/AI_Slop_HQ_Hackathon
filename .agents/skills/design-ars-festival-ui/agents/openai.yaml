@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Ars Festival UI"
+  short_description: "Design in the 2026 festival visual language"
+  default_prompt: "Use $design-ars-festival-ui to shape the UI/UX for this Ars Electronica Festival sub-event website."

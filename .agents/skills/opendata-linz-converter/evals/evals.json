@@ -1,0 +1,41 @@
+{
+  "skill_name": "opendata-linz-converter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Convert the two CSV files in opendata-linz/example-history to our standardized student-facing format and document the result.",
+      "expected_output": "Two deterministic UTF-8 CSV outputs, a strict converter, ignored source filenames, updated dataset documentation, and successful validation without overwriting unrelated changes.",
+      "files": [],
+      "expectations": [
+        "Both prepared files are comma-delimited UTF-8 without BOM and have unique nonempty IDs.",
+        "The converter validates both source headers, writes atomically, and produces deterministic bytes.",
+        "The dataset README reports measured counts, missing-value semantics, direct downloads, source links, and a justified readiness status.",
+        "Exact source filenames are ignored while prepared outputs and the converter remain trackable."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Prepare the public-facilities CSV for web maps. Its projected coordinate columns are confusingly named and some coordinate pairs are blank.",
+      "expected_output": "A converter that verifies the CRS and axis order, preserves projected coordinates, adds WGS84 lon/lat only for complete pairs, preserves unknowns, validates IDs and bounds, and documents freshness limitations.",
+      "files": [],
+      "expectations": [
+        "The implementation verifies the CRS and axis order instead of inferring them only from column names.",
+        "Projected values are preserved and complete coordinate pairs receive plausible Linz WGS84 lon/lat values.",
+        "Rows with both coordinates blank are preserved with blank lon/lat, while incomplete pairs fail validation.",
+        "The README warns that operational or accessibility information can be stale."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Refresh the already converted opendata-linz/example-live dataset from its official URL and update the main Open Data overview if its readiness changes.",
+      "expected_output": "A safe temporary download, source-schema drift check, deterministic regeneration, measured diff, accurate data-vintage documentation, central readiness update only when justified, and full web/repository validation.",
+      "files": [],
+      "expectations": [
+        "The official payload is downloaded to a temporary path and inspected before replacing any local source.",
+        "Schema and data drift are measured and reported before prepared output is regenerated.",
+        "The dataset README uses the actual source vintage and the central overview changes only if the evidence changes readiness.",
+        "Determinism, strict parsing, git diff checks, and the Astro content check all pass."
+      ]
+    }
+  ]
+}

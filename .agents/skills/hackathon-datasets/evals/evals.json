@@ -1,0 +1,23 @@
+{
+  "skill_name": "hackathon-datasets",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Find the best hackathon-site dataset for a map of public drinking water, read its notes, download the prepared data into my project's data folder, and tell me the fields and caveats I need before coding.",
+      "expected_output": "The agent chooses the drinking-fountain dataset, reads its live page and any linked docs before downloading, fetches only the hosted prepared file safely, and reports format, vintage, license, coordinate and missing-value caveats plus a concrete next step.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Can I call the EFA public-transport dataset directly from my browser-only app? Check all of the mini-docs on the hackathon site and give me a safe plan. Don't edit code yet.",
+      "expected_output": "The agent reads the EFA dataset page and nested API reference, identifies the documented CORS and legacy-service constraints, does not invent a hosted download, and recommends a backend/fallback or a safer cataloged alternative.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Download the latest festival program data from the hackathon datasets page and build a schedule by joining projects to calendar entries.",
+      "expected_output": "The agent routes the festival export to the ars-dataset workflow, validates the current export, uses canonical IDs and calendar-authoritative slots, respects visibility/link rules, and reports relation failures rather than fabricating events.",
+      "files": []
+    }
+  ]
+}
