@@ -28,7 +28,7 @@ Ziel ist gewinnen.
 | `data/festival/` | Festival-Export (886 Projekte, 779 Slots, 511 Kontakte, 156 Orte) |
 | `data/linz/` | 23 Linzer Datensätze, je mit eigener `README.md` |
 | `data/derived/` | Abgeleitetes, gitignored (Embeddings o. ä.) |
-| `app/` | Next.js 15 + Tailwind, deployt auf Vercel |
+| `app/` | Next.js 15 + Tailwind + MapLibre. **Live: https://ars-hackathon-2026.vercel.app** — jeder Push auf `main` deployt automatisch |
 | `tasks/todo.md` | Zwei-Tages-Plan · `tasks/lessons.md` Korrekturen |
 
 ## Befehle

@@ -10,14 +10,11 @@
 - [x] Ideensammlung, 29 Stück → `docs/ideas.md`
 - [x] `scripts/build_summary.py` + generierte `data/SUMMARY.md`
 - [x] Next.js-Boilerplate + MapLibre-Karte, Build und Datenauslieferung geprüft
-- [ ] **Vercel-Deployment — blockiert, braucht dich.** Der gespeicherte Token ist abgelaufen und
-      der MCP-Zugang darf keine Projekte anlegen (403). Einmalig im Terminal:
-      `! npx vercel login`, danach `cd app && npx vercel --yes` und
-      `npx vercel --prod`. URL dann in `docs/pitch.md` eintragen.
-      Das unbedingt **vor** dem Hackathon erledigen — am Tag X darf der Deploy-Pfad nicht neu sein.
+- [x] Vercel-Deployment live: <https://ars-hackathon-2026.vercel.app>, Git-Anbindung aktiv, QR-Code in `docs/qr-code.png`
 - [ ] Anmeldebestätigung von partizipation.linz.at im Postfach prüfen
 - [ ] Ideen mit dem Kollegen durchgehen, auf **eine** einigen
 - [ ] Fehlende Datensätze der gewählten Idee nachladen (`spielplaetze`, ggf. APIs)
+- [ ] QR-Code in A5 ausdrucken
 - [ ] Packliste: Laptops, Ladegeräte, Powerbank, Handy-Hotspot, HDMI-Adapter, Mehrfachstecker
 
 ## Freitag 11.9.
