@@ -15,11 +15,14 @@ Ziel ist gewinnen.
    existieren könnte.
 3. **Verbrannte Ideen:** Umkreissuche, Tagesplaner, Festivalkalender, Programm-Chatbot. Das sind die
    vier offiziellen Beispielprojekte — halbe Konkurrenz baut Varianten davon.
+4. **`DESIGN.md` ist verbindlich für jede UI.** Vor jeder Arbeit an Oberflächen lesen und
+   einhalten — ohne Ausnahme, auch bei kleinen Änderungen. Siehe unten.
 
 ## Wo was liegt
 
 | Pfad | Inhalt |
 |---|---|
+| `DESIGN.md` | **Verbindliches Design-System (Apple-Stil).** Vor jeder UI-Arbeit lesen |
 | `docs/briefing.md` | Bewerb, Ablauf, Voting-Mechanik, Konkurrenzlage, Risiken |
 | `docs/datasets.md` | Datenkatalog mit **Join-Regeln und Fallstricken** — vor jedem Datenzugriff lesen |
 | `docs/ideas.md` | 29 Ideen mit Aufwand, Risiko und Voting-Argument |
@@ -41,6 +44,29 @@ python3 $TOOL verify  data/festival/ars-festival-2026.json       # Integrität p
 python3 $TOOL summary data/festival/ars-festival-2026.json       # Kennzahlen
 cd app && npm run dev                               # localhost:3000
 ```
+
+## Design
+
+`DESIGN.md` im Repo-Root ist die verbindliche Vorgabe für alles Sichtbare. Die Tokens sind in
+`app/app/globals.css` als Tailwind-Theme hinterlegt — **niemals Hex-Werte oder Pixelmaße inline
+schreiben**, immer über die Tokens gehen (`bg-canvas`, `text-body`, `rounded-pill`, `py-section`).
+
+Die Regeln, an denen Entwürfe am ehesten scheitern:
+
+- **Ein einziger Akzent.** Action Blue `primary` trägt jedes interaktive Element. Es gibt keine
+  zweite Markenfarbe. Auf dunklen Flächen `primary-on-dark`, niemals umgekehrt.
+- **Kein Schatten auf Chrome.** Genau ein Schatten existiert im System und gehört Bildmaterial,
+  das auf einer Fläche ruht. Nie auf Karten, Buttons oder Text. Tiefe entsteht über den
+  Flächenwechsel hell ↔ dunkel.
+- **Randlose Tiles im Wechsel.** `canvas` → `surface-tile-1` → `canvas-parchment`. Der Farbwechsel
+  ist der Trenner, keine Linien, keine abgerundeten Ecken, keine Verläufe.
+- **Fließtext 17px, nicht 16px**, Zeilenhöhe 1.47. Überschriften ab 17px mit negativer Laufweite.
+- **Gewicht 500 existiert nicht.** Die Leiter ist 300 / 400 / 600 / 700.
+- **`transform: scale(0.95)`** ist der Druckzustand jedes Buttons, global in `globals.css`.
+
+Für Datenvisualisierung gilt die Auslegung in `app/app/lib.ts` (`POINT_TONE`): Der Akzent gehört
+der wichtigsten Ebene, alle weiteren Kategorien laufen über die Graustufen des Systems statt über
+zusätzliche Farbtöne.
 
 ## Arbeitsregeln
 

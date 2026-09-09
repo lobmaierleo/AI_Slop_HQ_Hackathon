@@ -23,3 +23,17 @@ Korrekturen und Muster, die sich wiederholen sollen. Nach jeder Korrektur ergän
   `{"rootDirectory":"app"}`.
 - **Ein erfolgreicher CLI-Deploy beweist nicht, dass der Git-Deploy funktioniert.** Es sind zwei
   verschiedene Pfade. Beide einzeln prüfen — vor dem Hackathon, nicht währenddessen.
+
+## 9.9.2026 — Design-System und Karte
+
+- **`DESIGN.md` ist ab sofort verbindlich für jede UI-Arbeit** und in `CLAUDE.md` als vierte
+  Grundregel verankert. Die Tokens leben in `app/app/globals.css` als Tailwind-Theme; niemals
+  Hex-Werte oder Pixelmaße inline schreiben.
+- **Ein Fehler in der Kartenkomponente riss die ganze Seite ab.** Ohne WebGL2 wirft MapLibre beim
+  Konstruieren eine Exception; unbehandelt nimmt sie den kompletten React-Baum mit, und der
+  Besucher sieht statt der Zahlen nur noch „This page couldn't load". Jetzt in `try/catch` mit
+  Fallback-Hinweis. Beim Community Voting kommen fremde Geräte auf die Seite — eine einzelne
+  Komponente darf nie die Seite mitnehmen.
+- **Headless Chrome für Screenshots braucht ein eigenes `--user-data-dir`**, sonst kollidiert es
+  mit der laufenden Chrome-Instanz und hängt. Und ohne WebGL rendert MapLibre dort ohnehin nicht —
+  für Kartenprüfungen führt kein Weg am echten Browser vorbei.
