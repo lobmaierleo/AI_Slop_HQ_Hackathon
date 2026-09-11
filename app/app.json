@@ -1,19 +1,16 @@
 {
   "expo": {
-    "name": "AI SLOPPY",
-    "slug": "ai-sloppy",
+    "name": "SELBERDENKEN",
+    "slug": "selberdenken",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "aisloppy",
-    "userInterfaceStyle": "light",
+    "scheme": "selberdenken",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "art.electronica.aisloppy",
+      "bundleIdentifier": "art.electronica.selberdenken",
       "appleTeamId": "495SM77253"
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "single"
     },
     "plugins": [
       [
@@ -23,7 +20,13 @@
         }
       ],
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Zeigt dir, welcher Entdeckungsort gerade am nächsten liegt."
+        }
+      ]
     ]
   }
 }

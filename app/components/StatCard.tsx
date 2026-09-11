@@ -1,10 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import { GlassSurface } from '@/components/GlassSurface';
+import { Symbol } from '@/components/Symbol';
+import type { SymbolName } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
 
 type Props = {
-  emoji: string;
+  symbol: SymbolName;
   value: string;
   label: string;
   caption: string;
@@ -12,59 +15,53 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** Verspielte Metrik-Kachel für Team-Fortschrittswerte. */
-export function StatCard({ emoji, value, label, caption, accent, style }: Props) {
+/**
+ * Metrik-Kachel auf Glas: ein SF Symbol, eine Kennzahl, zwei Zeilen Kontext.
+ * `adjustsFontSizeToFit` uebernimmt das Schrumpfen, wenn drei Karten
+ * nebeneinander stehen -- dafuer keine eigene, zweite Zahlengroesse erfinden.
+ */
+export function StatCard({ symbol, value, label, caption, accent, style }: Props) {
   return (
-    <View style={[styles.card, style]}>
-      <View style={[styles.badge, { backgroundColor: accent ?? THEME.colors.primaryLight }]}>
-        <Text style={styles.badgeEmoji}>{emoji}</Text>
+    <GlassSurface radius={THEME.radius.lg} style={style} contentStyle={styles.content}>
+      <View style={[styles.badge, { backgroundColor: THEME.colors.primarySoft }]}>
+        <Symbol name={symbol} size={20} color={accent ?? THEME.colors.primary} />
       </View>
-      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={styles.value} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>
         {value}
       </Text>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.caption}>{caption}</Text>
-    </View>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={styles.caption} numberOfLines={2}>
+        {caption}
+      </Text>
+    </GlassSurface>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: THEME.colors.card,
-    borderRadius: THEME.radius.lg,
-    borderWidth: 1,
-    borderColor: THEME.colors.hairline,
-    padding: 18,
+  content: {
+    gap: THEME.spacing.xs,
   },
   badge: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: THEME.radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: THEME.spacing.sm,
-  },
-  badgeEmoji: {
-    fontSize: 20,
   },
   value: {
-    fontSize: 30,
-    fontWeight: '700',
+    ...THEME.type.metric,
     color: THEME.colors.text,
-    letterSpacing: -1,
+    marginTop: THEME.spacing.xs,
   },
   label: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: '600',
+    ...THEME.type.caption,
     color: THEME.colors.text,
   },
   caption: {
-    marginTop: 2,
-    fontSize: 12,
-    color: THEME.colors.textMuted,
-    lineHeight: 16,
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
   },
 });
 

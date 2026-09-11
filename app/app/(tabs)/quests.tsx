@@ -4,8 +4,10 @@ import type { LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FactOrSlopCard } from '@/components/FactOrSlopCard';
+import { GlassSurface } from '@/components/GlassSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { PhotoQuestCard } from '@/components/PhotoQuestCard';
+import { Symbol } from '@/components/Symbol';
 import {
   PHOTO_QUESTS,
   TRIVIA_QUESTS,
@@ -17,8 +19,8 @@ import { THEME } from '@/theme/colors';
 const SEGMENT_CONTAINER_PADDING = 4;
 
 const SEGMENTS: { id: Segment; label: string }[] = [
-  { id: 'photo', label: '📸 Foto-Missionen' },
-  { id: 'trivia', label: '❓ Fakt oder Slop' },
+  { id: 'photo', label: 'Vor Ort' },
+  { id: 'trivia', label: 'Fakt oder Slop' },
 ];
 
 const SLIDE_OUT_DURATION = 160;
@@ -29,6 +31,8 @@ export default function QuestsScreen() {
     completedQuestIds,
     completePhotoQuest,
     answerTrivia,
+    answeredTriviaIds,
+    correctTriviaIds,
     pendingSegment,
     consumeSegment,
   } = useGameStore();
@@ -121,45 +125,59 @@ export default function QuestsScreen() {
 
   const thumbWidth = innerWidth / 2;
 
+  const progressLabel =
+    segment === 'photo'
+      ? `${completedQuestIds.length} von ${PHOTO_QUESTS.length} Orten besucht`
+      : `${answeredTriviaIds.length} von ${TRIVIA_QUESTS.length} Aussagen geprüft`;
+
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.title}>Quests</Text>
-        <Text style={styles.subtitle}>Sammle Linzer Realdaten für das Modell.</Text>
+        <Text style={styles.subtitle}>Finde es selbst heraus, statt die KI zu fragen.</Text>
       </View>
 
-      <View style={styles.segmentContainer} onLayout={handleContainerLayout}>
-        {innerWidth > 0 ? (
-          <Animated.View
-            style={[
-              styles.segmentThumb,
-              {
-                width: thumbWidth,
-                transform: [{ translateX: thumbX }],
-              },
-            ]}
-          />
-        ) : null}
-        {SEGMENTS.map((entry) => (
-          <HapticButton
-            key={entry.id}
-            haptic="selection"
-            scaleTo={0.98}
-            style={styles.segmentButton}
-            onPress={() => setSegment(entry.id)}
-            accessibilityLabel={entry.label}
-          >
-            <Text
+      <GlassSurface
+        radius={THEME.radius.pill}
+        flat
+        style={styles.segmentSurface}
+        contentStyle={styles.segmentSurfaceContent}
+      >
+        <View style={styles.segmentRow} onLayout={handleContainerLayout}>
+          {innerWidth > 0 ? (
+            <Animated.View
               style={[
-                styles.segmentLabel,
-                { color: segment === entry.id ? THEME.colors.primary : THEME.colors.textMuted },
+                styles.segmentThumb,
+                {
+                  width: thumbWidth,
+                  transform: [{ translateX: thumbX }],
+                },
               ]}
+            />
+          ) : null}
+          {SEGMENTS.map((entry) => (
+            <HapticButton
+              key={entry.id}
+              haptic="selection"
+              scaleTo={0.98}
+              style={styles.segmentButton}
+              onPress={() => setSegment(entry.id)}
+              accessibilityLabel={entry.label}
             >
-              {entry.label}
-            </Text>
-          </HapticButton>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.segmentLabel,
+                  { color: segment === entry.id ? THEME.colors.onAccent : THEME.colors.textMuted },
+                ]}
+              >
+                {entry.label}
+              </Text>
+            </HapticButton>
+          ))}
+        </View>
+      </GlassSurface>
+
+      <Text style={styles.progressLabel}>{progressLabel}</Text>
 
       {segment === 'photo' ? (
         <ScrollView
@@ -183,8 +201,12 @@ export default function QuestsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {isTriviaDone ? (
-            <View style={styles.doneCard}>
-              <Text style={styles.doneTitle}>🎉 Alle Statements gefüttert.</Text>
+            <GlassSurface radius={THEME.radius.lg} style={styles.doneCard} contentStyle={styles.doneCardContent}>
+              <Symbol name="checkmark.seal.fill" size={28} color={THEME.colors.primary} />
+              <Text style={styles.doneTitle}>Alle Aussagen geprüft.</Text>
+              <Text style={styles.doneScore}>
+                {correctTriviaIds.length} von {TRIVIA_QUESTS.length} richtig erkannt
+              </Text>
               <HapticButton
                 haptic="medium"
                 style={styles.doneButton}
@@ -193,7 +215,7 @@ export default function QuestsScreen() {
               >
                 <Text style={styles.doneButtonText}>Nochmal</Text>
               </HapticButton>
-            </View>
+            </GlassSurface>
           ) : (
             <Animated.View
               style={{
@@ -220,29 +242,30 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: THEME.colors.background,
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.lg,
   },
   header: {
     marginTop: THEME.spacing.md,
   },
   title: {
-    fontSize: 34,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    ...THEME.type.title,
     color: THEME.colors.text,
   },
   subtitle: {
-    fontSize: 15,
+    ...THEME.type.body,
     color: THEME.colors.textMuted,
     marginTop: 4,
   },
-  segmentContainer: {
+  segmentSurface: {
+    marginTop: THEME.spacing.lg,
+  },
+  segmentSurfaceContent: {
+    padding: 0,
+  },
+  segmentRow: {
     flexDirection: 'row',
     height: 48,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.track,
     padding: SEGMENT_CONTAINER_PADDING,
-    marginTop: THEME.spacing.lg,
     position: 'relative',
   },
   segmentThumb: {
@@ -251,11 +274,11 @@ const styles = StyleSheet.create({
     left: SEGMENT_CONTAINER_PADDING,
     height: 40,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.card,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: THEME.colors.primary,
+    shadowColor: THEME.colors.primaryGlow,
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
   },
   segmentButton: {
     flex: 1,
@@ -263,40 +286,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentLabel: {
-    fontSize: 14,
+    ...THEME.type.caption,
     fontWeight: '600',
+  },
+  progressLabel: {
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
+    marginTop: THEME.spacing.sm,
   },
   body: {
     flex: 1,
-    marginTop: THEME.spacing.lg,
+    marginTop: THEME.spacing.md,
   },
   photoContent: {
     paddingBottom: THEME.tabBarClearance,
   },
   triviaBody: {
     flex: 1,
-    marginTop: THEME.spacing.lg,
+    marginTop: THEME.spacing.md,
   },
   triviaContent: {
     flexGrow: 1,
     paddingBottom: THEME.tabBarClearance,
   },
   doneCard: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: THEME.radius.lg,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: THEME.colors.hairline,
+    marginTop: THEME.spacing.md,
+  },
+  doneCardContent: {
     alignItems: 'center',
+    paddingVertical: THEME.spacing.xl,
   },
   doneTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...THEME.type.heading,
     color: THEME.colors.text,
     textAlign: 'center',
+    marginTop: THEME.spacing.md,
+  },
+  doneScore: {
+    ...THEME.type.body,
+    color: THEME.colors.textMuted,
+    textAlign: 'center',
+    marginTop: THEME.spacing.xs,
   },
   doneButton: {
-    marginTop: THEME.spacing.md,
+    marginTop: THEME.spacing.lg,
     height: 50,
     minWidth: 160,
     borderRadius: THEME.radius.pill,
@@ -306,8 +339,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing.lg,
   },
   doneButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...THEME.type.bodyStrong,
     color: THEME.colors.onAccent,
   },
 });

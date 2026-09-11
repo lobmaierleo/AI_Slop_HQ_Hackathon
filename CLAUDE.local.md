@@ -17,19 +17,22 @@
 - `data/SUMMARY.md` ist der Einstiegspunkt für Datenfragen — zuerst dort greppen, bevor einzelne JSON/CSV geparst werden.
 - `DESIGN.md` im Repo-Root ist verbindlich für alle UI-Arbeiten (Nutzeranweisung).
 
-### Deployment (Vercel)
-*~3,000 tokens/session saved*
-- Die Vercel-MCP-Tools (`create_git_project`) scheitern mit „You don't have permission to create the project" und der MCP-Token ist ungültig. Deployment ausschließlich über CLI: `npx vercel link`, `npx vercel --prod --yes`, `npx vercel git connect --yes` im Ordner `app/`.
-- Live-URL: https://ars-hackathon-2026.vercel.app — Verifikation per `curl -sL -o /dev/null -w '%{http_code}'`, nicht per Browser-MCP.
+### Deployment (Vercel) — ÜBERHOLT seit 11.09.2026
+*Gilt nicht mehr. `app/` ist eine native iOS-App (Expo), kein Web-Projekt.*
+- Kein Vercel, kein Web-Build, keine öffentliche URL. Die Demo läuft auf einem Vorführ-iPhone.
+- Der Eintrag bleibt nur stehen, damit keine Session das Vercel-Setup neu versucht.
 
 ### Bash & Pfade
 *~2,500 tokens/session saved*
 - Das Arbeitsverzeichnis persistiert NICHT zwischen Bash-Calls: `cd data/linz` schlägt fehl, wenn ein vorheriger Call schon dort war. Immer `R=/Users/leolobmaier/Documents/GitHub.nosync/Developer/AI_Slop_HQ_Hackathon; cd $R` am Anfang jedes Blocks setzen und Pfade relativ zu `$R` angeben.
 - `find . -name "*.csv" -o -name "*.json"` ohne Klammern ignoriert die Filter — `find . \( -name "*.csv" -o -name "*.json" \)` schreiben.
 
-### Browser-Verifikation
-*~2,000 tokens/session saved*
-- `mcp__claude-in-chrome__navigate` und `tabs_context_mcp` laufen in diesem Setup zuverlässig in Timeouts (>8s, keine Antwort). Nicht verwenden.
-- UI-Verifikation stattdessen: `curl` auf localhost:3000 bzw. die Vercel-URL, plus `grep` im gebauten CSS (`app/.next/static/chunks/*.css`) für Design-Tokens.
+### Browser-Verifikation — ÜBERHOLT seit 11.09.2026
+*Es gibt keinen Browser-Pfad mehr. Kein Web-Export, keine localhost-Seite.*
+- Die Browser-MCP-Tools laufen in diesem Setup ohnehin in Timeouts. Nicht verwenden.
+- UI-Verifikation ohne Gerät: `cd app && npx tsc --noEmit` plus
+  `npx expo export --platform ios --output-dir <tmp>` — der Export beweist, dass das Bundle
+  vollständig auflöst. Alles Sichtbare danach am echten iPhone per `npx expo start`
+  (Standort und Haptik gibt es im Simulator nicht).
 
 <!-- headroom:learn:end -->

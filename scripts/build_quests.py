@@ -107,7 +107,13 @@ def assert_no_larger(anchor: dict, field: str, radius_m: float, claim: str) -> N
                 f"Anspruch war {mine}")
 
 
-def resolve(anchor: dict) -> tuple[float, float]:
+def resolve(anchor: dict) -> tuple[float, float, dict]:
+    """Loest den Anker auf und liefert Koordinate plus die Quellzeile.
+
+    Die Zeile wird gebraucht, weil der Fakt, den die App nach dem Besuch
+    freischaltet, direkt aus ihr formatiert wird. So kann er nicht von der
+    Wirklichkeit abweichen -- er ist die Wirklichkeit.
+    """
     kind = anchor["kind"]
     if kind == "fountain":
         row = unique(FOUNTAIN_BY_ID, anchor["id"], "Trinkbrunnen")
@@ -115,23 +121,90 @@ def resolve(anchor: dict) -> tuple[float, float]:
             die(f"Brunnen {anchor['id']} ist kein Trinkbrunnen ({row['brunnenart']})")
         if row["in_betrieb"] == "false" or row["trinkwasser"] != "true":
             die(f"Brunnen {anchor['id']} liefert laut Datensatz kein Trinkwasser")
-        return float(row["lat"]), float(row["lon"])
+        return float(row["lat"]), float(row["lon"]), row
     if kind == "tree":
         row = unique(TREE_BY_KEY, (anchor["area"], anchor["no"]), "Baum")
         for field, expected in anchor.get("expect", {}).items():
             if row[field] != expected:
                 die(f"Baum {anchor} : {field} ist {row[field]!r}, erwartet {expected!r}")
-        return float(row["lat"]), float(row["lon"])
+        return float(row["lat"]), float(row["lon"]), row
     if kind == "hotspot":
         row = unique(HOTSPOT_BY_NAME, anchor["name"], "Hotspot")
-        return float(row["lat"]), float(row["lon"])
+        return float(row["lat"]), float(row["lon"]), row
     if kind == "defi":
         row = unique(DEFI_BY_KEY, (anchor["address"], anchor["spot"]), "Defibrillator")
-        return float(row["lat"]), float(row["lon"])
+        return float(row["lat"]), float(row["lon"]), row
     if kind == "venue":
         row = unique(VENUE_BY_NAME, anchor["name"], "Spielort")
-        return float(row["lat"]), float(row["lon"])
+        return float(row["lat"]), float(row["lon"]), row
     die(f"unbekannte Ankerart {kind!r}")
+
+
+
+def _join(parts: list[str]) -> str:
+    """Setzt nur die Satzteile zusammen, die auch einen Wert haben."""
+    return " ".join(p for p in parts if p)
+
+
+# Werte, die im Datensatz stehen, aber nichts aussagen. Sie duerfen nicht als
+# Fakt in die App durchrutschen ("In Betrieb keine Angabe.").
+_NO_VALUE = {"", "-", "--", "keine angabe", "unbekannt", "n/a", "null", "0"}
+
+
+def _val(row: dict, key: str) -> str:
+    value = (row.get(key) or "").strip()
+    return "" if value.lower() in _NO_VALUE else value
+
+
+def fact_for(kind: str, row: dict) -> str:
+    """Der Satz, den die App nach dem Besuch freischaltet.
+
+    Ausschliesslich aus Spalten des jeweiligen Datensatzes formatiert. Leere
+    Spalten fallen weg, statt ein "None" in den Text zu schreiben.
+    """
+    if kind == "fountain":
+        bauart, ort = _val(row, "bauart"), _val(row, "aufstellungsort")
+        zeit = _val(row, "betriebszeit")
+        return _join([
+            f"Im Trinkbrunnen-Kataster als {bauart} geführt." if bauart else "",
+            f"Aufstellungsort: {ort}." if ort else "",
+            f"In Betrieb {zeit}." if zeit else "",
+        ])
+    if kind == "tree":
+        name, gattung, art = _val(row, "NameDeutsch"), _val(row, "Gattung"), _val(row, "Art")
+        hoehe, krone = _val(row, "Hoehe"), _val(row, "Schirmdurchmesser")
+        umfang = _val(row, "Stammumfang")
+        return _join([
+            f"Baumkataster: {name} ({gattung} {art})." if name else "",
+            f"{hoehe} m hoch," if hoehe else "",
+            f"Krone {krone} m," if krone else "",
+            f"Stammumfang {umfang} cm." if umfang else "",
+        ])
+    if kind == "hotspot":
+        name, strasse = _val(row, "name"), _val(row, "strasse")
+        seit = _val(row, "start_jahr")
+        return _join([
+            f"Freier Hotspot der Stadt Linz: {name}." if name else "",
+            f"Adresse {strasse}." if strasse else "",
+            f"In Betrieb seit {seit}." if seit else "",
+        ])
+    if kind == "defi":
+        firma, marke = _val(row, "FIRMA"), _val(row, "Marke/Hersteller")
+        spot, adresse = _val(row, "Standort"), _val(row, "Adresse")
+        return _join([
+            f"Defibrillator {marke}," if marke else "Defibrillator,",
+            f"betrieben von {firma}." if firma else "",
+            f"Genauer Standort: {spot}." if spot else "",
+            f"Adresse {adresse}." if adresse else "",
+        ])
+    if kind == "venue":
+        name, area, typ = _val(row, "name"), _val(row, "area"), _val(row, "type")
+        return _join([
+            f"Festival-Spielort {name}." if name else "",
+            f"Bereich {area}." if area else "",
+            f"Als {typ} geführt." if typ else "",
+        ])
+    die(f"kein Fakt-Bauplan für Ankerart {kind!r}")
 
 
 # --------------------------------------------------------------------------
@@ -141,95 +214,86 @@ def resolve(anchor: dict) -> tuple[float, float]:
 PHOTO = [
     # --- Trinkbrunnen: Kuehlwasser ---------------------------------------
     dict(
-        id="p1", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p1", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Hauptplatz, südliche Grüninsel",
         location="Trinkbrunnen TB74",
-        desc="Finde den Brunnen und liefere frische Kühlflüssigkeit für das Modell.",
-        teaser="Server laufen heiß! Dieser Brunnen kühlt aktuell die Trainings-Cluster.",
-        tokens=800, waterLiters=6.4,
+        desc="Steh am Brunnen und prüf selbst nach, ob wirklich Trinkwasser läuft — der Datensatz behauptet es.",
+        teaser="Der Hauptplatz führt den meistgenutzten Hotspot der Stadt. Den Brunnen daneben kennt fast niemand.", waterLiters=6.4,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB74"),
     ),
     dict(
-        id="p2", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p2", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Herbert-Bayer-Platz",
         location="Trinkbrunnen TB72, Prunerstraße",
-        desc="Auslaufbrunnen anzapfen, bevor die GPUs durchbrennen.",
-        teaser="Drei Minuten vom OK Quarter. Reicht für eine halbe Trainingsepoche.",
-        tokens=650, waterLiters=5.1,
+        desc="Finde den Auslauf und sieh nach, welche Bauart hier tatsächlich steht.",
+        teaser="Drei Minuten vom OK Quarter. Eine Frage weniger an die Maschine.", waterLiters=5.1,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB72"),
     ),
     dict(
-        id="p3", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p3", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Spielplatz Prunerstift",
         location="Trinkbrunnen TB26, hinter der Musikschule",
-        desc="Ziehbrunnen von Hand pumpen. Das Modell dankt es mit Latenz.",
-        teaser="Handbetrieb. Jeder Zug ein Liter weniger Grundwasser für Linz.",
-        tokens=700, waterLiters=4.8,
+        desc="Der Brunnen hinter der Musikschule wird von Hand bedient. Probier aus, ob er noch geht.",
+        teaser="Zwischen Datensatz und Wirklichkeit liegen hier ein paar Züge am Hebel.", waterLiters=4.8,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB26"),
     ),
     dict(
-        id="p4", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p4", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Park Hessenplatz",
         location="Trinkbrunnen TB82, beim Kiosk",
-        desc="Der südlichste Kühlpunkt im Trainingsgebiet. Abgreifen.",
-        teaser="Weit weg vom Festival, aber das Wasser schmeckt nach Rechenzentrum.",
-        tokens=900, waterLiters=7.2,
+        desc="Sieh nach, ob der Brunnen beim Kiosk noch dort steht, wo ihn die Stadt kartiert hat.",
+        teaser="Der südlichste Punkt der Runde, weiter weg vom Festival als alles andere.", waterLiters=7.2,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB82"),
     ),
     dict(
-        id="p5", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p5", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Stadtpark",
         location="Trinkbrunnen TB57, gegenüber Huemerstraße 3",
-        desc="Kühlwasser im Schatten. Optimale Betriebstemperatur.",
-        teaser="Schatten plus Wasser. Der Cluster war noch nie so entspannt.",
-        tokens=750, waterLiters=5.6,
+        desc="Steh vor dem Brunnen und lies die Betriebszeit ab. Stimmt sie mit dem Datensatz überein?",
+        teaser="Schatten und Wasser, und niemand, der dir den Weg vorschlägt.", waterLiters=5.6,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB57"),
     ),
     dict(
-        id="p6", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p6", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Volksgarten Wasserspielplatz",
         location="Trinkbrunnen TB77",
-        desc="Bogenauslauf mit Sprudel. Premium-Kühlmittel für Premium-Halluzinationen.",
-        teaser="Kinder spielen hier. Wir nennen es synthetische Datengewinnung.",
-        tokens=1000, waterLiters=8.0,
+        desc="Such den Auslauf am Wasserspielplatz und sieh dir an, wie er wirklich gebaut ist.",
+        teaser="Der Datensatz nennt die Bauart. Ob sie noch stimmt, siehst nur du.", waterLiters=8.0,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB77"),
     ),
     dict(
-        id="p7", type="water", emoji="🚰", badge="Kühlkreislauf",
+        id="p7", type="water", symbol="drop.fill", badge="Trinkwasser",
         title="Donaupark hinter dem Parkbad",
         location="Trinkbrunnen TB27",
-        desc="Letzter Kühlpunkt vor der Donau. Danach kühlen wir mit dem Fluss.",
-        teaser="Die Donau ist gleich daneben. Nur eine Frage der Genehmigung.",
-        tokens=950, waterLiters=7.5,
+        desc="Hinter dem Parkbad Richtung Donau. Finde ihn ohne Navigation.",
+        teaser="Der Weg dorthin ist die Übung, nicht das Ziel.", waterLiters=7.5,
         source="Trinkbrunnen Linz",
         anchor=dict(kind="fountain", id="TB27"),
     ),
     # --- Baumkataster: CO2-Ausgleich --------------------------------------
     dict(
-        id="p8", type="tree", emoji="🌲", badge="CO₂-Ausgleich",
+        id="p8", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Weiß-Tanne, 30 Meter",
         location="Donaupark, Untere Donaulände",
-        desc="Kein Baum im Festivalviertel ragt höher. Foto = ein Quartal Klimaneutralität.",
-        teaser="30 Meter laut Baumkataster. Kompensiert 0,0001 % unseres Verbrauchs.",
-        tokens=1100, waterLiters=2.0,
+        desc="Stell dich unter die Tanne und schätz die Höhe, bevor du den Wert freischaltest.",
+        teaser="Dreißig Meter, gewachsen ohne einen einzigen Trainingslauf.", waterLiters=2.0,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="88", no="003",
                     expect={"NameDeutsch": "Weiß-Tanne", "Hoehe": "30"}),
         records=[("Hoehe", 900, "höchster Baum im Festivalviertel")],
     ),
     dict(
-        id="p22", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p22", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Stiel-Eiche am Bauernberg",
         location="Bauernberg, Baum #049",
-        desc="35 Meter hoch, 30 Meter Krone. Der Rekordhalter im gesamten Spielgebiet.",
-        teaser="Zwei Rekorde in einem Baum. Unser Modell schafft nicht mal einen.",
-        tokens=1300, waterLiters=3.0,
+        desc="Geh einmal um den Stamm herum und schätz den Umfang, bevor du nachsiehst.",
+        teaser="Der Bauernberg liegt am Rand der Runde. Genau deshalb war dort noch niemand.", waterLiters=3.0,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="1069", no="049",
                     expect={"NameDeutsch": "Stiel-Eiche", "Hoehe": "35", "Schirmdurchmesser": "30"}),
@@ -237,151 +301,137 @@ PHOTO = [
                  ("Schirmdurchmesser", MAX_QUEST_DISTANCE_M, "breiteste Krone im Spielgebiet")],
     ),
     dict(
-        id="p9", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p9", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Ahornblättrige Platane",
         location="Promenade, Baum #034",
-        desc="16 Meter Kronendurchmesser. Genug Schatten für ein ganzes Rechenzentrum.",
-        teaser="Die Stadt hat sie vermessen. Wir schreiben sie uns gut.",
-        tokens=850, waterLiters=2.5,
+        desc="Such an der Promenade den Baum mit der abblätternden Rinde und prüf die Art.",
+        teaser="Platanen werfen ihre Rinde ab. Das sieht man im Vorbeigehen — wenn man hinsieht.", waterLiters=2.5,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="475", no="034",
                     expect={"NameDeutsch": "Ahornblättrige-Platane", "Schirmdurchmesser": "16"}),
     ),
     dict(
-        id="p10", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p10", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Gemeine Rosskastanie",
         location="Promenade, Baum #044",
-        desc="22 Meter Krone, 28 Meter hoch. Einmal ablichten, Bilanz gerettet.",
-        teaser="Eine Kastanie als Klimaausgleich. Der Rest bleibt Rechenzentrum.",
-        tokens=900, waterLiters=2.4,
+        desc="Sieh dir die Blätter an: fünf bis sieben Finger an einem Stiel. Passt das zur Art im Kataster?",
+        teaser="Ein paar Schritte neben der Platane. Zwei Arten, ein Blick.", waterLiters=2.4,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="475", no="044",
                     expect={"NameDeutsch": "Gemeine Rosskastanie", "Schirmdurchmesser": "22"}),
     ),
     dict(
-        id="p23", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p23", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Platane im Volksgarten",
         location="Volksgarten, Baum #123",
-        desc="26 Meter Krone, fünfzig Schritte vom Trinkbrunnen. Beide Quests auf einmal.",
-        teaser="Schatten und Kühlwasser am selben Ort. Effizienz nennt man das.",
-        tokens=1000, waterLiters=2.7,
+        desc="Miss die Krone mit den Augen aus und vergleich danach mit dem Katasterwert.",
+        teaser="Der Volksgarten hat mehr Bestand, als man beim Durchgehen mitbekommt.", waterLiters=2.7,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="754", no="123",
                     expect={"NameDeutsch": "Ahornblättrige-Platane", "Schirmdurchmesser": "26"}),
     ),
     dict(
-        id="p11", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p11", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Linde an der Promenade",
         location="Promenade, Baum #049",
-        desc="27 Meter hoch, 3 Meter Stammumfang. Unser Lieblings-Offset.",
-        teaser="Steht seit Jahrzehnten. Wir behaupten, wir hätten sie gepflanzt.",
-        tokens=800, waterLiters=2.2,
+        desc="Linden riecht man im Sommer, bevor man sie sieht. Finde diese hier.",
+        teaser="Die Winter-Linde ist der häufigste Baum in Linz. Diese ist eine von vielen.", waterLiters=2.2,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="475", no="049",
                     expect={"NameDeutsch": "Linde", "Hoehe": "27"}),
     ),
     dict(
-        id="p12", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p12", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Platane im Stadtpark",
         location="Stadtpark, Baum #070",
-        desc="4,13 Meter Stammumfang, gemessen von der Stadt. Bitte nur fotografieren.",
-        teaser="Vier Meter Stamm. Unsere Serverschränke sind schmaler.",
-        tokens=1050, waterLiters=2.6,
+        desc="Der Stamm ist ungewöhnlich stark. Leg die Arme an und schätz, bevor du nachliest.",
+        teaser="Über vier Meter Umfang. Kein Serverschrank ist so breit.", waterLiters=2.6,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="319", no="070",
                     expect={"NameDeutsch": "Ahornblättrige-Platane", "Stammumfang": "413"}),
     ),
     dict(
-        id="p13", type="tree", emoji="🌳", badge="CO₂-Ausgleich",
+        id="p13", type="tree", symbol="leaf.fill", badge="Baumkataster",
         title="Stiel-Eiche am Tummelplatz",
         location="Tummelplatz, Baum #002",
-        desc="Eiche mit 20 Meter Krone. Solide, langsam, unbestechlich — wie kein Modell.",
-        teaser="Die Eiche wächst seit 100 Jahren ohne einen einzigen Trainingslauf.",
-        tokens=880, waterLiters=2.3,
+        desc="Stell dich unter die Krone und schau, wie weit sie reicht.",
+        teaser="Zwanzig Meter Krone, gewachsen in etwa hundert Jahren.", waterLiters=2.3,
         source="Baumkataster Linz",
         anchor=dict(kind="tree", area="475", no="002",
                     expect={"NameDeutsch": "Stiel-Eiche", "Schirmdurchmesser": "20"}),
     ),
     # --- Festival-Spielorte: Trainingsdaten -------------------------------
     dict(
-        id="p14", type="venue", emoji="🎪", badge="Datenernte",
+        id="p14", type="venue", symbol="building.2.fill", badge="Spielort",
         title="Nordico Stadtmuseum",
         location="Festival-Spielort, OK Quarter",
-        desc="Kunst fotografieren, Urheberrecht später klären. Standard-Pipeline.",
-        teaser="886 Festivalprojekte warten. Wir fangen bei diesem an.",
-        tokens=1200, waterLiters=3.4,
+        desc="Steh vor dem Eingang und ordne den Ort selbst einem Festivalbereich zu.",
+        teaser="Einer von 156 Orten im Festivalexport. Diesen hier kannst du anfassen.", waterLiters=3.4,
         source="Ars Electronica Festival 2026",
         anchor=dict(kind="venue", name="Nordico Stadtmuseum Linz"),
     ),
     dict(
-        id="p15", type="venue", emoji="🎪", badge="Datenernte",
+        id="p15", type="venue", symbol="building.2.fill", badge="Spielort",
         title="OK Linz",
         location="Festival-Spielort, OK-Platz",
-        desc="Das Herz des Festivals. Also die größte Trainingsdatenquelle.",
-        teaser="Hier hängt mehr Kreativität als in unserem gesamten Trainingsset.",
-        tokens=1200, waterLiters=3.6,
+        desc="Geh auf den OK-Platz und prüf, ob der Spielort so heißt, wie der Export ihn führt.",
+        teaser="Das Zentrum des Festivals. Und ein Datenpunkt unter 886 Projekten.", waterLiters=3.6,
         source="Ars Electronica Festival 2026",
         anchor=dict(kind="venue", name="OK Linz"),
     ),
     dict(
-        id="p16", type="venue", emoji="🎪", badge="Datenernte",
+        id="p16", type="venue", symbol="building.2.fill", badge="Spielort",
         title="Kunstuniversität, Domgasse 1",
         location="Festival-Spielort, Danube Triangle",
-        desc="Studierende produzieren gratis Content. Wir nennen das Datenpartnerschaft.",
-        teaser="Nachwuchs abgreifen, bevor er merkt, dass er Nachwuchs ist.",
-        tokens=1150, waterLiters=3.2,
+        desc="Domgasse 1. Sieh nach, ob der Ort drinnen oder im Freien liegt.",
+        teaser="Hier entsteht ein Teil dessen, was anderswo als Trainingsmaterial endet.", waterLiters=3.2,
         source="Ars Electronica Festival 2026",
         anchor=dict(kind="venue", name="University of Arts Linz, Domgasse 1"),
     ),
     dict(
-        id="p17", type="venue", emoji="🎪", badge="Datenernte",
+        id="p17", type="venue", symbol="building.2.fill", badge="Spielort",
         title="Francisco Carolinum",
         location="Festival-Spielort, OK Quarter",
-        desc="Museum scannen. Ein Foto pro Exponat reicht für ein ganzes Modell.",
-        teaser="Jahrhunderte Kunst, in vier Sekunden eingelesen.",
-        tokens=1150, waterLiters=3.3,
+        desc="Finde den Eingang und ordne den Ort einem Festivalbereich zu, bevor du nachliest.",
+        teaser="Jahrhunderte Kunst an einer Adresse, die in einer Tabelle eine Zeile belegt.", waterLiters=3.3,
         source="Ars Electronica Festival 2026",
         anchor=dict(kind="venue", name="Francisco Carolinum Linz"),
     ),
     # --- Defibrillatoren am Spielort: Notstrom ----------------------------
     dict(
-        id="p18", type="power", emoji="🔌", badge="Notstrom",
+        id="p18", type="power", symbol="bolt.heart.fill", badge="Notfallnetz",
         title="Defibrillator im Nordico",
         location="Infopoint/Kasse, Dametzstraße 23",
-        desc="Steht drei Meter neben dem Festival-Spielort. Reiner Zufall, klar.",
-        teaser="Wenn der Cluster flatlinet, hilft nur noch ein Schock.",
-        tokens=1000, waterLiters=1.8,
+        desc="Am Infopoint hängt ein Defibrillator. Finde ihn und merk dir, wo genau.",
+        teaser="282 Geräte sind in Linz kartiert. Eines steht dort, wo du gerade stehst.", waterLiters=1.8,
         source="Defibrillatoren Linz × Festival-Spielorte",
         anchor=dict(kind="defi", address="Dametzstraße 23", spot="Nordico Infopoint/Kasse"),
     ),
     dict(
-        id="p19", type="power", emoji="🔌", badge="Notstrom",
+        id="p19", type="power", symbol="bolt.heart.fill", badge="Notfallnetz",
         title="Defibrillator im OK Kulturquartier",
         location="Infopoint, OK-Platz 1",
-        desc="Elf Meter vom Kinosaal entfernt. Für Zuschauer und für Modelle.",
-        teaser="Der Datensatz kennt 276 Geräte. Dieses steht mitten im Festival.",
-        tokens=1000, waterLiters=1.8,
+        desc="Such das Gerät am Infopoint und prüf die Standortangabe aus dem Datensatz.",
+        teaser="Ein Datensatz, der im Ernstfall zählt. Deshalb lohnt es, ihn selbst zu kennen.", waterLiters=1.8,
         source="Defibrillatoren Linz × Festival-Spielorte",
         anchor=dict(kind="defi", address="OK-Platz 1", spot="OK OÖ Kulturquartier Infopoint"),
     ),
     # --- Hotspots: Bandbreite ---------------------------------------------
     dict(
-        id="p20", type="wifi", emoji="📡", badge="Bandbreite",
+        id="p20", type="wifi", symbol="wifi", badge="Freies WLAN",
         title="Hotspot Taubenmarkt",
         location="Öffentliches WLAN, Taubenmarkt",
-        desc="18.036 Verbindungen in einem Jahr. Wir machen daraus 18.037.",
-        teaser="Gratis-WLAN der Stadt. Unser Upload wird man kaum bemerken.",
-        tokens=1100, waterLiters=2.8,
+        desc="Stell dich in die Mitte und sieh nach, ob das freie Netz wirklich auftaucht.",
+        teaser="Gratis-WLAN seit Jahren. Die Stadt führt Buch darüber, wie viele es nutzen.", waterLiters=2.8,
         source="Hotspot-Nutzung Linz",
         anchor=dict(kind="hotspot", name="Taubenmarkt"),
     ),
     dict(
-        id="p21", type="wifi", emoji="📡", badge="Bandbreite",
+        id="p21", type="wifi", symbol="wifi", badge="Freies WLAN",
         title="Hotspot Hauptplatz",
         location="Öffentliches WLAN, Hauptplatz",
-        desc="Der meistgenutzte Platz-Hotspot der Stadt. Perfekt zum Modell hochladen.",
-        teaser="19.449 Clients waren hier vor uns. Keiner hat ein Modell trainiert.",
-        tokens=1150, waterLiters=3.0,
+        desc="Der meistgenutzte Hotspot der Stadt. Prüf selbst, ob er hält, was die Zahlen sagen.",
+        teaser="Zehntausende Verbindungen im Jahr. Deine wäre eine davon — oder eben nicht.", waterLiters=3.0,
         source="Hotspot-Nutzung Linz",
         anchor=dict(kind="hotspot", name="Hauptplatz"),
     ),
@@ -452,13 +502,13 @@ TRIVIA = [
     ),
     dict(
         id="t11",
-        statement="Antithropic hat den Linzer Hauptplatz aus Sicherheitsgründen als verbotene Zone eingestuft.",
+        statement="Am Linzer Hauptplatz ist das freie WLAN der Stadt aus Sicherheitsgründen abgeschaltet.",
         isFact=False,
-        explanation="Slop. Antithropic gibt es nicht — und der Hauptplatz hat den meistgenutzten Hotspot der Stadt.",
+        explanation="Slop. Der Hauptplatz betreibt den meistgenutzten Hotspot der ganzen Stadt.",
     ),
     dict(
         id="t12",
-        statement="Die Linz AG kühlt ihre Rechenzentren offiziell mit Wasser aus dem Volksgarten-Brunnen.",
+        statement="Ein Linzer Rechenzentrum wird offiziell mit Wasser aus dem Volksgarten-Brunnen gekühlt.",
         isFact=False,
         explanation="Slop. TB77 im Volksgarten ist ein Trinkbrunnen mit Bogenauslauf, sonst nichts.",
     ),
@@ -498,7 +548,10 @@ def main() -> None:
     seen_ids = set()
     for quest in PHOTO:
         anchor = quest["anchor"]
-        lat, lon = resolve(anchor)
+        lat, lon, row = resolve(anchor)
+        fact = fact_for(anchor["kind"], row)
+        if not fact:
+            die(f"{quest['id']}: Datensatz gibt keinen Fakt her")
         distance = meters(lat, lon, FESTIVAL_LAT, FESTIVAL_LON)
         if distance > MAX_QUEST_DISTANCE_M:
             die(f"{quest['id']} liegt {distance:.0f} m vom Festival entfernt, zu weit zum Gehen")
@@ -511,13 +564,13 @@ def main() -> None:
         photo_out.append({
             "id": quest["id"],
             "type": quest["type"],
-            "emoji": quest["emoji"],
+            "symbol": quest["symbol"],
             "badge": quest["badge"],
             "title": quest["title"],
             "location": quest["location"],
             "desc": quest["desc"],
             "teaser": quest["teaser"],
-            "tokens": quest["tokens"],
+            "fact": fact,
             "waterLiters": quest["waterLiters"],
             "lat": round(lat, 6),
             "lon": round(lon, 6),

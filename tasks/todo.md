@@ -61,3 +61,37 @@ Belege:
 
 Offen: Der Foto-Scan ist ein Mock ohne `expo-image-picker` (Spec §7.2 fordert genau diesen
 Fallback). Echte Kamera wäre nachrüstbar, erzwingt aber einen iOS-Prebuild.
+
+---
+
+## Umbau zu SELBERDENKEN (11.09.2026)
+
+„AI SLOPPY" ist weg. Das Narrativ ist umgedreht: **Du bist die Intelligenz.** Statt eine KI zu
+fragen, gehst du hin, findest den Fakt in den echten Daten und sparst das Kühlwasser, das die
+Abfrage verdampft hätte. Jeder gefundene Ort wird ein Neuron in deinem Netz.
+
+Entfernt: Firmen-Teams, Team-Auswahl, Leaderboard, `slopTokens`, `agiProgress`, `hallucination`,
+alle Emojis, das Orange, `app/assets/logos/`, `app/assets/data/slop_fixtures.json`.
+
+Neu:
+- `scripts/build_graph.py` → `app/data/graph.json` (23 Knoten, 42 Kanten). Positionen sind die
+  echten Linzer Koordinaten, normalisiert und relaxiert — Karte und Netz-Tab zeigen dieselbe Stadt.
+- `app/components/GlassSurface.tsx` — die eine Glasfläche, auf der jede Karte, Leiste und Pille sitzt.
+- `app/components/Symbol.tsx` — SF Symbols statt Emojis.
+- `app/components/SynapseGraph.tsx` + `app/app/(tabs)/network.tsx` — „Mein Netz" ersetzt „Ranking".
+- Karte: dunkel, Nebel des Unwissens (`Polygon` mit `holes`), Synapsen als `Polyline`, Nähe-Radar
+  über `expo-location`.
+- Persistenz über AsyncStorage (`selberdenken.v1`), Reset mit Rückfrage.
+
+Die Fakten werden in `build_quests.py` aus CSV-Spalten per f-String erzeugt, nicht getextet — sie
+können deshalb nicht halluziniert sein. Der Tippfehler „gegnüber" in p5 steht so im Original-
+datensatz der Stadt Linz und bleibt bewusst stehen.
+
+Belege:
+- `npx tsc --noEmit` — keine Ausgabe, Exit 0
+- `npx expo export --platform ios` — 1.655 Module, Bundle 3,8 MB, keine verwaisten Assets
+- `grep` auf Emojis, `ClosedAI|Antithropic|Grek|ShallowSeek|slopTokens|agiProgress|hallucination`,
+  `leaderboard`, `emoji` — jeweils null Treffer in `app/`
+
+Offen (nur am echten iPhone prüfbar): Windungsrichtung der Nebel-Löcher, Standort-Freigabe für den
+Radar, Haptik. Beides scheitert im Simulator lautlos.

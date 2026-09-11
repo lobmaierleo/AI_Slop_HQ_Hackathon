@@ -11,7 +11,7 @@ const SCREEN_OPTIONS = {
 const INDEX_OPTIONS = { title: 'Übersicht' };
 const QUESTS_OPTIONS = { title: 'Quests' };
 const MAP_OPTIONS = { title: 'Karte' };
-const LEADERBOARD_OPTIONS = { title: 'Ranking' };
+const NETWORK_OPTIONS = { title: 'Mein Netz' };
 
 const renderTabBar = (props: LiquidTabBarProps) => <LiquidTabBar {...props} />;
 
@@ -21,7 +21,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={INDEX_OPTIONS} />
       <Tabs.Screen name="quests" options={QUESTS_OPTIONS} />
       <Tabs.Screen name="map" options={MAP_OPTIONS} />
-      <Tabs.Screen name="leaderboard" options={LEADERBOARD_OPTIONS} />
+      <Tabs.Screen name="network" options={NETWORK_OPTIONS} />
     </Tabs>
   );
 }

@@ -1,189 +1,169 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import quests from '@/data/quests.json';
+import { LITERS_PER_QUERY, queriesAvoided } from '@/lib/net';
+import type { SymbolName } from '@/components/Symbol';
 
-export type TeamId = 'closedai' | 'antithropic' | 'grek' | 'shallowseek';
-
-export type Team = {
-  id: TeamId;
-  name: string;
-  tagline: string;
-  emoji: string;
-  color: string;
-  tint: string;
-  rank: number;
+export type PhotoQuest = {
+  id: string;
+  type: string;
+  symbol: SymbolName;
+  badge: string;
+  title: string;
+  location: string;
+  desc: string;
+  teaser: string;
+  /** Der Satz, der erst nach dem Besuch sichtbar wird. Kommt aus dem Datensatz. */
+  fact: string;
+  waterLiters: number;
+  lat: number;
+  lon: number;
+  source: string;
 };
 
-export const TEAMS: Team[] = [
-  {
-    id: 'closedai',
-    name: 'ClosedAI',
-    tagline: 'Openness ist überbewertet. Alles bleibt in unserer Blackbox.',
-    emoji: '🟧',
-    color: '#FF5C00',
-    tint: '#FFF0E6',
-    rank: 2,
-  },
-  {
-    id: 'antithropic',
-    name: 'Antithropic',
-    tagline: '100 % harmlos. Beantwortet nichts, verbraucht trotzdem Kühlwasser.',
-    emoji: '🟪',
-    color: '#7C4DFF',
-    tint: '#F0EBFF',
-    rank: 1,
-  },
-  {
-    id: 'grek',
-    name: 'Grek',
-    tagline: 'Volles Chaos, null Zensur, maximale Halluzination.',
-    emoji: '⚡',
-    color: '#00B0FF',
-    tint: '#E4F5FF',
-    rank: 4,
-  },
-  {
-    id: 'shallowseek',
-    name: 'ShallowSeek',
-    tagline: 'Gleiche Power, 90 % billiger, weil wir von den anderen kopieren.',
-    emoji: '🌀',
-    color: '#00C853',
-    tint: '#E3F9EB',
-    rank: 3,
-  },
-];
+export type TriviaQuest = {
+  id: string;
+  statement: string;
+  isFact: boolean;
+  explanation: string;
+};
 
+export const PHOTO_QUESTS = quests.photoQuests as PhotoQuest[];
+export const TRIVIA_QUESTS = quests.triviaQuests as TriviaQuest[];
+
+/** Die beiden Bereiche des Quests-Tabs. */
 export type Segment = 'photo' | 'trivia';
 
-export type PhotoQuest = (typeof quests.photoQuests)[number];
-export type TriviaQuest = (typeof quests.triviaQuests)[number];
-
-export type GameState = {
-  team: Team | null;
-  waterLiters: number;
-  slopTokens: number;
-  agiProgress: number;
-  hallucination: number;
+/** Nur diese Felder ueberleben einen App-Neustart. */
+type Persisted = {
+  hasStarted: boolean;
+  savedWaterLiters: number;
   completedQuestIds: string[];
+  completedPhotos: Record<string, string>;
   answeredTriviaIds: string[];
+  correctTriviaIds: string[];
+};
+
+const EMPTY: Persisted = {
+  hasStarted: false,
+  savedWaterLiters: 0,
+  completedQuestIds: [],
+  completedPhotos: {},
+  answeredTriviaIds: [],
+  correctTriviaIds: [],
+};
+
+export type GameState = Persisted & {
+  /** Erst true, wenn AsyncStorage gelesen wurde. Vorher nichts rendern. */
+  hydrated: boolean;
+  /** Abgeleitet aus savedWaterLiters, damit die Zahl im Pitch nachrechenbar bleibt. */
+  aiQueriesAvoided: number;
   pendingSegment: Segment | null;
-  selectTeam: (id: TeamId) => void;
-  completePhotoQuest: (questId: string) => void;
+  start: () => void;
+  completePhotoQuest: (questId: string, photoUri?: string) => void;
   answerTrivia: (questId: string, wasCorrect: boolean) => void;
   requestSegment: (segment: Segment) => void;
   consumeSegment: () => void;
-  resetGame: () => void;
+  resetProgress: () => void;
 };
 
-const START = {
-  waterLiters: 24.5,
-  slopTokens: 8200,
-  agiProgress: 68,
-  hallucination: 0,
-};
+const STORAGE_KEY = 'selberdenken.v1';
 
-const AGI_CEILING = 99.4;
-
-/** Nähert sich asymptotisch der Decke — AGI ist immer knapp außer Reichweite. */
-function advanceAgi(current: number, step: number) {
-  return Math.min(AGI_CEILING, current + (AGI_CEILING - current) * step);
-}
+/** Ein richtig erkanntes Statement spart eine Abfrage, ein falsches nichts. */
+const TRIVIA_REWARD_LITERS = LITERS_PER_QUERY;
 
 const GameContext = createContext<GameState | null>(null);
 
-export function GameProvider({ children }: { children: ReactNode }) {
-  const [team, setTeam] = useState<Team | null>(null);
-  const [waterLiters, setWaterLiters] = useState(START.waterLiters);
-  const [slopTokens, setSlopTokens] = useState(START.slopTokens);
-  const [agiProgress, setAgiProgress] = useState(START.agiProgress);
-  const [hallucination, setHallucination] = useState(START.hallucination);
-  const [completedQuestIds, setCompletedQuestIds] = useState<string[]>([]);
-  const [answeredTriviaIds, setAnsweredTriviaIds] = useState<string[]>([]);
+export function GameProvider({ children }: { children: React.ReactNode }) {
+  const [saved, setSaved] = useState<Persisted>(EMPTY);
+  const [hydrated, setHydrated] = useState(false);
   const [pendingSegment, setPendingSegment] = useState<Segment | null>(null);
 
-  const selectTeam = useCallback((id: TeamId) => {
-    setTeam(TEAMS.find((entry) => entry.id === id) ?? null);
+  useEffect(() => {
+    let alive = true;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (alive && raw) setSaved({ ...EMPTY, ...(JSON.parse(raw) as Persisted) });
+      })
+      // Ein kaputter Eintrag darf den Start nicht blockieren -- dann eben frisch.
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const completePhotoQuest = useCallback((questId: string) => {
-    const quest = quests.photoQuests.find((entry) => entry.id === questId);
-    if (!quest) return;
-    setCompletedQuestIds((ids) => (ids.includes(questId) ? ids : [...ids, questId]));
-    setWaterLiters((value) => value + quest.waterLiters);
-    setSlopTokens((value) => value + quest.tokens);
-    setAgiProgress((value) => advanceAgi(value, 0.06));
+  useEffect(() => {
+    if (hydrated) void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }, [saved, hydrated]);
+
+  const start = useCallback(() => {
+    setSaved((s) => ({ ...s, hasStarted: true }));
+  }, []);
+
+  const completePhotoQuest = useCallback((questId: string, photoUri?: string) => {
+    setSaved((s) => {
+      if (s.completedQuestIds.includes(questId)) return s;
+      const quest = PHOTO_QUESTS.find((q) => q.id === questId);
+      if (!quest) return s;
+      return {
+        ...s,
+        completedQuestIds: [...s.completedQuestIds, questId],
+        savedWaterLiters: s.savedWaterLiters + quest.waterLiters,
+        completedPhotos: photoUri
+          ? { ...s.completedPhotos, [questId]: photoUri }
+          : s.completedPhotos,
+      };
+    });
   }, []);
 
   const answerTrivia = useCallback((questId: string, wasCorrect: boolean) => {
-    setAnsweredTriviaIds((ids) => (ids.includes(questId) ? ids : [...ids, questId]));
-    if (wasCorrect) {
-      setSlopTokens((value) => value + 400);
-      setWaterLiters((value) => value + 1.2);
-      setAgiProgress((value) => advanceAgi(value, 0.03));
-    } else {
-      setHallucination((value) => value + 5);
-      setWaterLiters((value) => value + 2.4);
-    }
+    setSaved((s) => {
+      if (s.answeredTriviaIds.includes(questId)) return s;
+      return {
+        ...s,
+        answeredTriviaIds: [...s.answeredTriviaIds, questId],
+        correctTriviaIds: wasCorrect ? [...s.correctTriviaIds, questId] : s.correctTriviaIds,
+        savedWaterLiters: wasCorrect
+          ? s.savedWaterLiters + TRIVIA_REWARD_LITERS
+          : s.savedWaterLiters,
+      };
+    });
+  }, []);
+
+  const resetProgress = useCallback(() => {
+    setSaved(EMPTY);
+    setPendingSegment(null);
   }, []);
 
   const requestSegment = useCallback((segment: Segment) => setPendingSegment(segment), []);
   const consumeSegment = useCallback(() => setPendingSegment(null), []);
 
-  const resetGame = useCallback(() => {
-    setTeam(null);
-    setWaterLiters(START.waterLiters);
-    setSlopTokens(START.slopTokens);
-    setAgiProgress(START.agiProgress);
-    setHallucination(START.hallucination);
-    setCompletedQuestIds([]);
-    setAnsweredTriviaIds([]);
-    setPendingSegment(null);
-  }, []);
-
   const value = useMemo<GameState>(
     () => ({
-      team,
-      waterLiters,
-      slopTokens,
-      agiProgress,
-      hallucination,
-      completedQuestIds,
-      answeredTriviaIds,
+      ...saved,
+      hydrated,
+      aiQueriesAvoided: queriesAvoided(saved.savedWaterLiters),
       pendingSegment,
-      selectTeam,
+      start,
       completePhotoQuest,
       answerTrivia,
       requestSegment,
       consumeSegment,
-      resetGame,
+      resetProgress,
     }),
-    [
-      team,
-      waterLiters,
-      slopTokens,
-      agiProgress,
-      hallucination,
-      completedQuestIds,
-      answeredTriviaIds,
-      pendingSegment,
-      selectTeam,
-      completePhotoQuest,
-      answerTrivia,
-      requestSegment,
-      consumeSegment,
-      resetGame,
-    ],
+    [saved, hydrated, pendingSegment, start, completePhotoQuest, answerTrivia,
+      requestSegment, consumeSegment, resetProgress],
   );
 
   return createElement(GameContext.Provider, { value }, children);
 }
 
 export function useGameStore(): GameState {
-  const value = useContext(GameContext);
-  if (!value) throw new Error('useGameStore muss innerhalb von <GameProvider> verwendet werden.');
-  return value;
+  const ctx = useContext(GameContext);
+  if (!ctx) throw new Error('useGameStore muss innerhalb von GameProvider stehen');
+  return ctx;
 }
-
-export const PHOTO_QUESTS = quests.photoQuests;
-export const TRIVIA_QUESTS = quests.triviaQuests;

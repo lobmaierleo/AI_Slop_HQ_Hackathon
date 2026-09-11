@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassSurface } from '@/components/GlassSurface';
+import { Symbol, type SymbolName } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
 
 /**
@@ -36,11 +37,11 @@ export type LiquidTabBarProps = {
   navigation: LiquidTabNavigation;
 };
 
-const TAB_ICONS: Record<string, string> = {
-  index: '🏠',
-  quests: '🎯',
-  map: '🗺️',
-  leaderboard: '🏆',
+const TAB_ICONS: Record<string, SymbolName> = {
+  index: 'square.grid.2x2',
+  quests: 'camera.viewfinder',
+  map: 'map',
+  network: 'brain',
 };
 
 const PILL_INSET = 8;
@@ -75,10 +76,12 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
       style={[styles.shadowWrapper, { bottom: Math.max(24, insets.bottom) }]}
       onLayout={handleLayout}
     >
-      <View style={styles.glassContainer}>
-        <BlurView intensity={80} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
-        <View style={styles.webFallback} pointerEvents="none" />
-
+      <GlassSurface
+        radius={32}
+        intensity={70}
+        style={styles.glassContainer}
+        contentStyle={styles.glassContent}
+      >
         {barWidth > 0 && (
           <Animated.View
             pointerEvents="none"
@@ -96,7 +99,7 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
             const label = options.title ?? route.name;
-            const icon = TAB_ICONS[route.name] ?? '•';
+            const icon = TAB_ICONS[route.name] ?? 'circle';
             const focused = activeIndex === index;
 
             const onPress = () => {
@@ -121,15 +124,13 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
                 onPress={onPress}
                 style={styles.item}
               >
-                <Text
-                  style={[
-                    styles.icon,
-                    { opacity: focused ? 1 : 0.55 },
-                    focused && styles.iconActive,
-                  ]}
-                >
-                  {icon}
-                </Text>
+                <View style={{ opacity: focused ? 1 : 0.6 }}>
+                  <Symbol
+                    name={icon}
+                    size={20}
+                    color={focused ? THEME.colors.primary : THEME.colors.textMuted}
+                  />
+                </View>
                 <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}>
                   {label}
                 </Text>
@@ -137,7 +138,7 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
             );
           })}
         </View>
-      </View>
+      </GlassSurface>
     </View>
   );
 }
@@ -157,28 +158,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  glassContainer: {
-    flex: 1,
-    borderRadius: 32,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: THEME.colors.glassBorder,
-  },
-  webFallback: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: THEME.colors.glassBackground,
-  },
+  glassContainer: { flex: 1 },
+  // Die Leiste traegt ihr eigenes Layout; die Standard-Polsterung der
+  // Glasflaeche wuerde die vier Felder ungleich stauchen.
+  glassContent: { flex: 1, padding: 0 },
   pill: {
     position: 'absolute',
     top: 8,
     bottom: 8,
     left: 0,
     borderRadius: THEME.radius.pill,
-    backgroundColor: 'rgba(255, 92, 0, 0.12)',
+    backgroundColor: THEME.colors.primarySoft,
   },
   row: {
     flex: 1,
@@ -189,16 +179,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: {
-    fontSize: 22,
-  },
-  iconActive: {
-    color: THEME.colors.primary,
-  },
   label: {
-    marginTop: 2,
+    marginTop: 3,
+    ...THEME.type.eyebrow,
     fontSize: 11,
-    fontWeight: '600',
+    letterSpacing: 0,
   },
   labelActive: {
     color: THEME.colors.primary,

@@ -7,9 +7,10 @@ Ziel ist gewinnen.
 
 ## Die drei Regeln, aus denen alles folgt
 
-1. **Es entscheidet Community Voting, keine Jury.** Das Publikum muss die Sache am eigenen Handy
-   ausprobieren können — öffentliche URL plus QR-Code ist Pflicht. Was in 60 Sekunden nicht zündet,
-   verliert.
+1. **Es entscheidet Community Voting, keine Jury.** Was in 60 Sekunden nicht zündet, verliert.
+   Die App ist eine native iOS-App und läuft auf einem Vorführ-iPhone, das beim Voting
+   herumgereicht wird — **kein Web-Build, keine öffentliche URL, kein QR-Code.** Das war eine
+   frühere Regel und ist auf ausdrückliche Entscheidung gefallen (Stand 11.09.2026).
 2. **Beide Datenwelten müssen strukturell verschränkt sein.** Festivalorte auf einer Linz-Karte zu
    zeigen erfüllt das Kriterium nicht. Es zählt eine Verbindung, die ohne beide Datensätze nicht
    existieren könnte.
@@ -31,7 +32,7 @@ Ziel ist gewinnen.
 | `data/festival/` | Festival-Export (886 Projekte, 779 Slots, 511 Kontakte, 156 Orte) |
 | `data/linz/` | 23 Linzer Datensätze, je mit eigener `README.md` |
 | `data/derived/` | Abgeleitetes, gitignored (Embeddings o. ä.) |
-| `app/` | Next.js 15 + Tailwind + MapLibre. **Live: https://ars-hackathon-2026.vercel.app** — jeder Push auf `main` deployt automatisch |
+| `app/` | **SELBERDENKEN** — Expo SDK 57 / React Native, Expo Router, `react-native-maps` (Apple Maps). Nur iOS |
 | `tasks/todo.md` | Zwei-Tages-Plan · `tasks/lessons.md` Korrekturen |
 
 ## Befehle
@@ -42,31 +43,38 @@ TOOL=.agents/skills/ars-dataset/scripts/ars_dataset.py
 python3 $TOOL download -o data/festival/ars-festival-2026.json   # Export aktualisieren
 python3 $TOOL verify  data/festival/ars-festival-2026.json       # Integrität prüfen
 python3 $TOOL summary data/festival/ars-festival-2026.json       # Kennzahlen
-cd app && npm run dev                               # localhost:3000
+python3 scripts/build_quests.py                     # app/data/quests.json aus Realdaten
+python3 scripts/build_graph.py                      # app/data/graph.json (Synapsen-Netz)
+cd app && npx expo start                            # auf dem iPhone oeffnen
+cd app && npx tsc --noEmit                          # Typpruefung
 ```
 
 ## Design
 
-`DESIGN.md` im Repo-Root ist die verbindliche Vorgabe für alles Sichtbare. Die Tokens sind in
-`app/app/globals.css` als Tailwind-Theme hinterlegt — **niemals Hex-Werte oder Pixelmaße inline
-schreiben**, immer über die Tokens gehen (`bg-canvas`, `text-body`, `rounded-pill`, `py-section`).
+`DESIGN.md` im Repo-Root ist die verbindliche Vorgabe für alles Sichtbare. Die Tokens liegen in
+`app/theme/colors.ts` (`THEME.colors`, `THEME.type`, `THEME.glass`, `THEME.radius`,
+`THEME.spacing`) — **niemals Hex-Werte oder Pixelmaße inline schreiben**, immer über die Tokens.
+Jede Glasfläche geht durch `app/components/GlassSurface.tsx`, jedes Icon durch
+`app/components/Symbol.tsx` (SF Symbols). **Keine Emojis**, nirgends.
+
+SELBERDENKEN nutzt bewusst die **Dunkel-Hälfte** von `DESIGN.md` plus Glas, Glow und Verläufe als
+Materialsprache — die einzige bewusste Abweichung, dokumentiert im Kopf von `app/theme/colors.ts`.
 
 Die Regeln, an denen Entwürfe am ehesten scheitern:
 
 - **Ein einziger Akzent.** Action Blue `primary` trägt jedes interaktive Element. Es gibt keine
   zweite Markenfarbe. Auf dunklen Flächen `primary-on-dark`, niemals umgekehrt.
-- **Kein Schatten auf Chrome.** Genau ein Schatten existiert im System und gehört Bildmaterial,
-  das auf einer Fläche ruht. Nie auf Karten, Buttons oder Text. Tiefe entsteht über den
-  Flächenwechsel hell ↔ dunkel.
-- **Randlose Tiles im Wechsel.** `canvas` → `surface-tile-1` → `canvas-parchment`. Der Farbwechsel
-  ist der Trenner, keine Linien, keine abgerundeten Ecken, keine Verläufe.
 - **Fließtext 17px, nicht 16px**, Zeilenhöhe 1.47. Überschriften ab 17px mit negativer Laufweite.
+  Steht als `THEME.type.body` fertig bereit.
 - **Gewicht 500 existiert nicht.** Die Leiter ist 300 / 400 / 600 / 700.
-- **`transform: scale(0.95)`** ist der Druckzustand jedes Buttons, global in `globals.css`.
+- **Druckzustand jedes Buttons** ist `scale(0.95)` — liefert `HapticButton` über `scaleTo`.
+- *Aufgehoben für SELBERDENKEN:* „Kein Schatten auf Chrome" und „randlose Tiles ohne Verläufe".
+  Auf Schwarz ist Glas das Material, und der Glow des Akzents ist die Tiefe. Alles andere aus
+  `DESIGN.md` gilt unverändert.
 
-Für Datenvisualisierung gilt die Auslegung in `app/app/lib.ts` (`POINT_TONE`): Der Akzent gehört
-der wichtigsten Ebene, alle weiteren Kategorien laufen über die Graustufen des Systems statt über
-zusätzliche Farbtöne.
+Für Datenvisualisierung bleibt die Auslegung: Der Akzent gehört der wichtigsten Ebene, alle
+weiteren Kategorien laufen über die Graustufen des Systems statt über zusätzliche Farbtöne.
+Auf der Karte heißt das: entdeckte Orte in `primary`, alles andere grau.
 
 ## Arbeitsregeln
 

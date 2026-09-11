@@ -1,135 +1,143 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
+import { Alert, Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GlassSurface } from '@/components/GlassSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { StatCard } from '@/components/StatCard';
+import { Symbol } from '@/components/Symbol';
+import { activeEdges, EDGES } from '@/lib/net';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
 
+/** Tag im Jahr (0-basiert) -- deterministisch, damit der Spot im Pitch reproduzierbar bleibt. */
+function dayOfYear(date: Date): number {
+  const yearStart = new Date(date.getFullYear(), 0, 0);
+  return Math.floor((date.getTime() - yearStart.getTime()) / 86400000);
+}
+
 export default function OverviewScreen() {
   const router = useRouter();
-  const { team, waterLiters, slopTokens, agiProgress, requestSegment, resetGame } = useGameStore();
+  const { savedWaterLiters, aiQueriesAvoided, completedQuestIds, requestSegment, resetProgress } =
+    useGameStore();
 
-  const anim = useRef(new Animated.Value(0)).current;
-  const [trackWidth, setTrackWidth] = useState(0);
+  // Fixer Tagesindex statt Math.random() -- derselbe Spot fuer alle an einem Tag.
+  const spot = useMemo(() => PHOTO_QUESTS[dayOfYear(new Date()) % PHOTO_QUESTS.length], []);
+  const edgeCount = useMemo(() => activeEdges(completedQuestIds).length, [completedQuestIds]);
+  const edgeTotal = EDGES.length;
+  const progressPct = edgeTotal > 0 ? edgeCount / edgeTotal : 0;
 
-  const spot = useMemo(() => {
-    const dayIndex = Math.floor(Date.now() / 86400000) % PHOTO_QUESTS.length;
-    return PHOTO_QUESTS[dayIndex];
-  }, []);
+  const [displayLiters, setDisplayLiters] = useState(0);
+  const literAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const pct = Math.min(100, Math.max(0, agiProgress)) / 100;
-    Animated.timing(anim, {
-      toValue: pct,
+    // Listener statt Native Driver, weil hier ein Textwert und keine Style-Prop mitzaehlt.
+    const id = literAnim.addListener(({ value }) => setDisplayLiters(value));
+    Animated.timing(literAnim, {
+      toValue: savedWaterLiters,
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    return () => literAnim.removeListener(id);
+  }, [literAnim, savedWaterLiters]);
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progressPct,
       duration: 900,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
-  }, [agiProgress, anim]);
+  }, [progressAnim, progressPct]);
 
-  const handleTrackLayout = (event: LayoutChangeEvent) => {
-    setTrackWidth(event.nativeEvent.layout.width);
-  };
-
-  if (!team) {
-    // Kein Team gewählt (z. B. direkt nach resetGame()): der Guard in
-    // app/_layout.tsx entfernt diesen Screen im selben Zug aus dem Stack.
-    // Hier nur sicherstellen, dass in der Zwischenzeit nichts abstürzt.
-    return null;
-  }
+  const fillWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   const goToSpot = () => {
     requestSegment('photo');
     router.push('/(tabs)/quests');
   };
 
+  // Beim Voting wandert das iPhone durch viele Hände. Ein versehentlicher Tap
+  // darf nicht das ganze Netz löschen.
+  const confirmReset = () => {
+    Alert.alert(
+      'Fortschritt zurücksetzen?',
+      'Alle entdeckten Orte, Synapsen und gesparten Liter werden gelöscht.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        { text: 'Zurücksetzen', style: 'destructive', onPress: resetProgress },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.heroCard, { backgroundColor: team.color }]}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroBadge}>
-              <Text style={styles.heroBadgeEmoji}>{team.emoji}</Text>
-            </View>
-            <View style={styles.heroTitleWrap}>
-              <Text style={styles.heroTeamName}>{team.name}</Text>
-              <View style={styles.rankPill}>
-                <Text style={styles.rankPillText}>Platz {team.rank} im Linzer Race</Text>
-              </View>
-            </View>
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <GlassSurface glow radius={THEME.radius.xl} contentStyle={styles.heroContent}>
+          <Text style={styles.heroHeading}>Menschliches Erkenntnis-Netz</Text>
 
-          <View style={styles.agiRow}>
-            <Text style={styles.agiLabel}>bis AGI</Text>
-            <Text style={styles.agiValue}>{agiProgress.toFixed(1)} %</Text>
+          <View style={styles.metricRow}>
+            <Text style={styles.metricValue}>{displayLiters.toFixed(1)}</Text>
+            <Text style={styles.metricUnit}>L</Text>
           </View>
+          <Text style={styles.heroCaption}>Kühlwasser, das deine Neugier nicht verdampft hat</Text>
 
-          <View style={styles.track} onLayout={handleTrackLayout}>
-            <Animated.View
-              style={[
-                styles.trackFill,
-                {
-                  transform: [
-                    {
-                      translateX: anim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-trackWidth / 2, 0],
-                      }),
-                    },
-                    { scaleX: anim },
-                  ],
-                },
-              ]}
-            />
+          <View style={styles.track}>
+            <Animated.View style={[styles.trackFill, { width: fillWidth }]} />
           </View>
-        </View>
+          <Text style={styles.progressLabel}>
+            {edgeCount} von {edgeTotal} Synapsen aktiv
+          </Text>
+        </GlassSurface>
 
         <View style={styles.statsRow}>
           <StatCard
-            emoji="💧"
-            value={`${waterLiters.toFixed(1)} L`}
-            label="Wasserverbrauch"
-            caption="Linzer Donauwasser verdampft"
+            symbol="drop.fill"
+            value={`${savedWaterLiters.toFixed(1)} L`}
+            label="Eingespartes Wasser"
+            caption="Nicht verdampftes Kühlwasser"
+            style={styles.statCard}
           />
           <StatCard
-            emoji="⚡"
-            value={`${(slopTokens / 1000).toFixed(1)} kTok`}
-            label="Slop trainiert"
-            caption="Synthetische Daten gefüttert"
-            accent={THEME.colors.primaryLight}
+            symbol="brain"
+            value={`${edgeCount}/${edgeTotal}`}
+            label="Aktive Synapsen"
+            caption="Verknüpfte Entdeckungen"
+            style={styles.statCard}
+          />
+          <StatCard
+            symbol="magnifyingglass"
+            value={String(aiQueriesAvoided)}
+            label="Vermiedene Abfragen"
+            caption="Nicht gestellte KI-Fragen"
+            style={styles.statCard}
           />
         </View>
 
-        <Text style={styles.sectionHeading}>Linz Spot des Tages</Text>
-
-        <View style={styles.spotCard}>
+        <Text style={styles.sectionHeading}>Spot des Tages</Text>
+        <GlassSurface radius={THEME.radius.lg} contentStyle={styles.spotContent}>
           <View style={styles.spotTopRow}>
-            <View style={styles.spotBadgeCircle}>
-              <Text style={styles.spotBadgeEmoji}>{spot.emoji}</Text>
-            </View>
+            <Symbol name={spot.symbol} size={20} color={THEME.colors.primary} />
             <View style={styles.spotBadgePill}>
-              <Text style={styles.spotBadgePillText}>{spot.badge}</Text>
+              <Text style={styles.spotBadgeText}>{spot.badge}</Text>
             </View>
           </View>
-
           <Text style={styles.spotTitle}>{spot.title}</Text>
           <Text style={styles.spotLocation}>{spot.location}</Text>
           <Text style={styles.spotTeaser}>{spot.teaser}</Text>
-
-          <HapticButton haptic="medium" style={styles.ctaButton} onPress={goToSpot}>
-            <Text style={styles.ctaButtonText}>Zur Kühl-Mission springen →</Text>
+          <HapticButton haptic="medium" style={styles.spotCta} onPress={goToSpot}>
+            <Text style={styles.spotCtaText}>Zur Entdeckung</Text>
           </HapticButton>
-        </View>
+        </GlassSurface>
 
-        <HapticButton haptic="selection" style={styles.resetLink} onPress={resetGame}>
-          <Text style={styles.resetLinkText}>Neu starten</Text>
+        <HapticButton haptic="selection" style={styles.resetLink} onPress={confirmReset}>
+          <Text style={styles.resetLinkText}>Fortschritt zurücksetzen</Text>
         </HapticButton>
       </ScrollView>
     </SafeAreaView>
@@ -142,168 +150,117 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.background,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.spacing.lg,
+    paddingTop: THEME.spacing.md,
     paddingBottom: THEME.tabBarClearance,
   },
-  heroCard: {
-    marginTop: THEME.spacing.md,
-    borderRadius: THEME.radius.lg,
-    padding: THEME.spacing.lg,
+  heroContent: {
+    gap: THEME.spacing.xs,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  heroHeading: {
+    ...THEME.type.heading,
+    color: THEME.colors.text,
   },
-  heroBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.onAccent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroBadgeEmoji: {
-    fontSize: 24,
-  },
-  heroTitleWrap: {
-    marginLeft: THEME.spacing.md,
-    flex: 1,
-  },
-  heroTeamName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: THEME.colors.onAccent,
-  },
-  rankPill: {
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  rankPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: THEME.colors.onAccent,
-  },
-  agiRow: {
-    marginTop: THEME.spacing.lg,
+  metricRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    gap: THEME.spacing.xs,
+    marginTop: THEME.spacing.sm,
   },
-  agiLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.75)',
+  metricValue: {
+    ...THEME.type.metric,
+    color: THEME.colors.primary,
   },
-  agiValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: THEME.colors.onAccent,
+  metricUnit: {
+    ...THEME.type.title,
+    color: THEME.colors.textMuted,
+  },
+  heroCaption: {
+    ...THEME.type.body,
+    color: THEME.colors.textMuted,
   },
   track: {
-    marginTop: THEME.spacing.sm,
-    height: 12,
+    marginTop: THEME.spacing.md,
+    height: 6,
     borderRadius: THEME.radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: THEME.colors.track,
     overflow: 'hidden',
   },
   trackFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '100%',
+    height: '100%',
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.onAccent,
+    backgroundColor: THEME.colors.primary,
+  },
+  progressLabel: {
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
+    marginTop: THEME.spacing.xs,
   },
   statsRow: {
-    marginTop: THEME.spacing.md,
     flexDirection: 'row',
-    gap: 12,
+    gap: THEME.spacing.sm,
+    marginTop: THEME.spacing.lg,
+  },
+  statCard: {
+    flex: 1,
   },
   sectionHeading: {
-    marginTop: THEME.spacing.lg,
-    marginBottom: THEME.spacing.sm,
-    fontSize: 13,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    ...THEME.type.eyebrow,
     color: THEME.colors.primary,
+    marginTop: THEME.spacing.xl,
+    marginBottom: THEME.spacing.sm,
   },
-  spotCard: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: THEME.radius.lg,
-    borderWidth: 1,
-    borderColor: THEME.colors.hairline,
-    padding: 20,
+  spotContent: {
+    gap: THEME.spacing.xs,
   },
   spotTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  spotBadgeCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotBadgeEmoji: {
-    fontSize: 20,
+    gap: THEME.spacing.sm,
   },
   spotBadgePill: {
-    marginLeft: THEME.spacing.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: THEME.spacing.sm,
+    paddingVertical: THEME.spacing.xs / 2,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primaryLight,
+    backgroundColor: THEME.colors.primarySoft,
   },
-  spotBadgePillText: {
-    fontSize: 11,
-    fontWeight: '700',
+  spotBadgeText: {
+    ...THEME.type.eyebrow,
     color: THEME.colors.primary,
   },
   spotTitle: {
-    marginTop: THEME.spacing.md,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    ...THEME.type.heading,
     color: THEME.colors.text,
+    marginTop: THEME.spacing.xs,
   },
   spotLocation: {
-    marginTop: 2,
-    fontSize: 13,
-    color: THEME.colors.textMuted,
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
   },
   spotTeaser: {
-    marginTop: THEME.spacing.sm,
-    fontSize: 15,
-    lineHeight: 21,
-    color: THEME.colors.text,
+    ...THEME.type.body,
+    color: THEME.colors.textMuted,
+    marginTop: THEME.spacing.xs,
   },
-  ctaButton: {
-    marginTop: THEME.spacing.lg,
-    height: 54,
+  spotCta: {
+    marginTop: THEME.spacing.md,
+    height: 50,
     borderRadius: THEME.radius.pill,
     backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  spotCtaText: {
+    ...THEME.type.bodyStrong,
     color: THEME.colors.onAccent,
   },
   resetLink: {
     alignSelf: 'center',
     marginTop: THEME.spacing.lg,
+    paddingVertical: THEME.spacing.sm,
   },
   resetLinkText: {
-    fontSize: 13,
-    color: THEME.colors.textMuted,
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
   },
 });

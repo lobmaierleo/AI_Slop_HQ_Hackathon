@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
+import { GlassSurface } from '@/components/GlassSurface';
 import { HapticButton } from '@/components/HapticButton';
+import { Symbol } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
 import type { TriviaQuest } from '@/state/useGameStore';
 
@@ -26,12 +28,11 @@ const SHAKE_STEP_DURATION = 45;
 const STATEMENT_MAX_LINES = 5;
 const STATEMENT_MIN_FONT_SCALE = 0.75;
 
-/**
- * Android schrumpft adjustsFontSizeToFit ohne minimumFontScale mitunter bis
- * zur Unlesbarkeit/Unsichtbarkeit statt sauber zu clampen (Plattform-Bug,
- * iOS ist davon nicht betroffen). Fester Boden hält den Button-Text lesbar.
- */
-const ACTION_MIN_FONT_SCALE = 0.8;
+/** Schützt die Beschriftung der Antwort-Pillen vor Überlauf bei schmalen Geräten. */
+const ACTION_MIN_FONT_SCALE = 0.85;
+
+/** Eine korrekt erkannte Aussage spart eine LLM-Abfrage -- die Hälfte des Wertes einer Vor-Ort-Quest. */
+const TRIVIA_SAVED_LITERS_LABEL = '0,5 L';
 
 export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props) {
   const [answered, setAnswered] = useState(false);
@@ -79,150 +80,164 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
   };
 
   return (
-    <Animated.View style={[styles.card, { transform: [{ translateX: shakeX }] }]}>
-      <View style={styles.counterRow}>
-        <Text style={styles.counter}>
-          {index + 1} / {total}
+    <Animated.View style={{ transform: [{ translateX: shakeX }] }}>
+      <GlassSurface radius={THEME.radius.lg} style={styles.card}>
+        <View style={styles.counterRow}>
+          <Text style={styles.counter}>
+            {index + 1} / {total}
+          </Text>
+        </View>
+
+        <Text
+          style={styles.statement}
+          numberOfLines={STATEMENT_MAX_LINES}
+          adjustsFontSizeToFit
+          minimumFontScale={STATEMENT_MIN_FONT_SCALE}
+        >
+          {quest.statement}
         </Text>
-      </View>
 
-      <Text
-        style={styles.statement}
-        numberOfLines={STATEMENT_MAX_LINES}
-        adjustsFontSizeToFit
-        minimumFontScale={STATEMENT_MIN_FONT_SCALE}
-      >
-        {quest.statement}
-      </Text>
-
-      {!answered ? (
-        <View style={styles.actions}>
-          <HapticButton
-            haptic="medium"
-            style={[styles.actionButton, { backgroundColor: THEME.colors.success }]}
-            onPress={() => handle(true)}
-            accessibilityLabel="Echter Fakt"
-          >
-            <Text
-              style={styles.actionText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={ACTION_MIN_FONT_SCALE}
+        {!answered ? (
+          // Beide Optionen bleiben bewusst gleich neutral -- ein Akzent
+          // gehört dem System, nicht der Verführung zur richtigen Antwort.
+          <View style={styles.actions}>
+            <HapticButton
+              haptic="medium"
+              style={styles.actionSlot}
+              onPress={() => handle(true)}
+              accessibilityLabel="Echter Fakt"
             >
-              ✅ ECHTER FAKT
-            </Text>
-          </HapticButton>
-          <HapticButton
-            haptic="medium"
-            style={[styles.actionButton, { backgroundColor: THEME.colors.error }]}
-            onPress={() => handle(false)}
-            accessibilityLabel="AI Slop"
-          >
-            <Text
-              style={styles.actionText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={ACTION_MIN_FONT_SCALE}
+              <GlassSurface radius={THEME.radius.pill} contentStyle={styles.actionContent}>
+                <Symbol name="checkmark.seal.fill" size={18} color={THEME.colors.text} />
+                <Text
+                  style={styles.actionText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={ACTION_MIN_FONT_SCALE}
+                >
+                  Echter Fakt
+                </Text>
+              </GlassSurface>
+            </HapticButton>
+            <HapticButton
+              haptic="medium"
+              style={styles.actionSlot}
+              onPress={() => handle(false)}
+              accessibilityLabel="AI Slop"
             >
-              🛑 AI SLOP
-            </Text>
-          </HapticButton>
-        </View>
-      ) : (
-        <View>
-          <View
-            style={[
-              styles.banner,
-              { backgroundColor: wasCorrect ? THEME.colors.successLight : THEME.colors.errorLight },
-            ]}
-          >
-            <Text
-              style={[
-                styles.bannerTitle,
-                { color: wasCorrect ? THEME.colors.success : THEME.colors.error },
-              ]}
-            >
-              {wasCorrect ? 'Richtig! Modell gefüttert.' : 'Falsch! Halluzination um 5 % gestiegen.'}
-            </Text>
-            <Text style={styles.bannerExplanation}>{quest.explanation}</Text>
+              <GlassSurface radius={THEME.radius.pill} contentStyle={styles.actionContent}>
+                <Symbol name="exclamationmark.triangle.fill" size={18} color={THEME.colors.text} />
+                <Text
+                  style={styles.actionText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={ACTION_MIN_FONT_SCALE}
+                >
+                  AI Slop
+                </Text>
+              </GlassSurface>
+            </HapticButton>
           </View>
+        ) : (
+          <View>
+            <GlassSurface radius={THEME.radius.md} flat style={styles.resultCard}>
+              <View style={styles.resultHeader}>
+                <Symbol
+                  name={wasCorrect ? 'checkmark.seal.fill' : 'xmark.seal.fill'}
+                  size={18}
+                  color={wasCorrect ? THEME.colors.success : THEME.colors.error}
+                />
+                <Text
+                  style={[
+                    styles.resultTitle,
+                    { color: wasCorrect ? THEME.colors.success : THEME.colors.error },
+                  ]}
+                >
+                  {wasCorrect ? 'Richtig erkannt.' : 'Falsch erkannt.'}
+                </Text>
+              </View>
+              <Text style={styles.explanation}>{quest.explanation}</Text>
+              {wasCorrect ? (
+                <Text style={styles.savedNote}>{TRIVIA_SAVED_LITERS_LABEL} Kühlwasser gespart.</Text>
+              ) : null}
+            </GlassSurface>
 
-          <HapticButton haptic="light" style={styles.nextButton} onPress={onNext} accessibilityLabel="Weiter">
-            <Text style={styles.nextButtonText}>Weiter →</Text>
-          </HapticButton>
-        </View>
-      )}
+            <HapticButton haptic="light" style={styles.nextButton} onPress={onNext} accessibilityLabel="Weiter">
+              <Text style={styles.nextButtonText}>Weiter</Text>
+            </HapticButton>
+          </View>
+        )}
+      </GlassSurface>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: THEME.colors.card,
-    borderRadius: THEME.radius.lg,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: THEME.colors.hairline,
+    marginBottom: THEME.spacing.md,
   },
   counterRow: {
     alignItems: 'flex-end',
   },
   counter: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: THEME.colors.textMuted,
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
   },
   statement: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...THEME.type.heading,
     color: THEME.colors.text,
-    lineHeight: 27,
-    letterSpacing: -0.3,
     marginTop: THEME.spacing.sm,
-    marginBottom: THEME.spacing.md,
+    marginBottom: THEME.spacing.lg,
   },
   actions: {
     flexDirection: 'row',
     gap: THEME.spacing.sm,
   },
-  actionButton: {
+  actionSlot: {
     flex: 1,
-    height: 56,
-    borderRadius: THEME.radius.pill,
+  },
+  actionContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: THEME.spacing.xs,
+    gap: THEME.spacing.xs,
+    height: 56,
   },
   actionText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: THEME.colors.onAccent,
-  },
-  banner: {
-    borderRadius: THEME.radius.md,
-    padding: THEME.spacing.md,
-  },
-  bannerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  bannerExplanation: {
-    fontSize: 13,
+    ...THEME.type.bodyStrong,
     color: THEME.colors.text,
-    lineHeight: 18,
-    marginTop: 6,
+  },
+  resultCard: {
+    marginTop: THEME.spacing.xs,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing.xs,
+  },
+  resultTitle: {
+    ...THEME.type.bodyStrong,
+  },
+  explanation: {
+    ...THEME.type.body,
+    color: THEME.colors.textMuted,
+    marginTop: THEME.spacing.sm,
+  },
+  savedNote: {
+    ...THEME.type.caption,
+    color: THEME.colors.textFaint,
+    marginTop: THEME.spacing.sm,
   },
   nextButton: {
     height: 50,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.text,
+    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: THEME.spacing.md,
   },
   nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...THEME.type.bodyStrong,
     color: THEME.colors.onAccent,
   },
 });
