@@ -1,0 +1,12 @@
+{
+  "note": "Fiktive Mitspielende fuer die Rangliste. Feste Werte, kein Zufall -- die Rangliste muss im Pitch reproduzierbar sein.",
+  "rivals": [
+    { "id": "r1", "name": "Nora K.", "hint": "seit Donnerstag dabei", "waterLiters": 24.0 },
+    { "id": "r2", "name": "Jonas P.", "hint": "Hauptplatz-Runde", "waterLiters": 17.0 },
+    { "id": "r3", "name": "Elif S.", "hint": "Donaulände zu Fuß", "waterLiters": 12.5 },
+    { "id": "r4", "name": "Theo M.", "hint": "Brunnen gesammelt", "waterLiters": 9.0 },
+    { "id": "r5", "name": "Lena B.", "hint": "erster Festivaltag", "waterLiters": 6.5 },
+    { "id": "r6", "name": "Samu R.", "hint": "zwei Spielorte", "waterLiters": 4.5 },
+    { "id": "r7", "name": "Mira D.", "hint": "gerade angekommen", "waterLiters": 2.0 }
+  ]
+}

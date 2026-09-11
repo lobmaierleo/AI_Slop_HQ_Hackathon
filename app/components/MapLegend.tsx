@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol, type SymbolName } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
@@ -19,7 +19,11 @@ const ITEMS: { key: MapLayerKey; icon: SymbolName; label: string }[] = [
   { key: 'fountains', icon: 'drop.fill', label: 'Brunnen' },
 ];
 
-/** Schwebende Glas-Pillen ueber der Karte: Ebenen unabhaengig ein-/ausblenden. */
+/**
+ * Schaltknoepfe ueber der Karte: Ebenen unabhaengig ein- und ausblenden.
+ * Aktiv heisst gelb gefuellt, inaktiv weiss -- auf der hellen Karte reicht der
+ * Rahmen allein nicht als Unterschied.
+ */
 export function MapLegend({ layers, onToggle, topOffset }: Props) {
   return (
     <View style={[styles.wrap, { top: topOffset }]} pointerEvents="box-none">
@@ -30,24 +34,28 @@ export function MapLegend({ layers, onToggle, topOffset }: Props) {
             <HapticButton
               key={item.key}
               haptic="selection"
-              scaleTo={0.94}
+              pressStyle="push"
               onPress={() => onToggle(item.key)}
               accessibilityLabel={`${item.label} ${active ? 'ausblenden' : 'einblenden'}`}
             >
-              <GlassSurface
-                radius={THEME.radius.pill}
-                glow={active}
-                contentStyle={styles.pill}
-              >
-                <Symbol
-                  name={item.icon}
-                  size={14}
-                  color={active ? THEME.colors.primary : THEME.colors.textFaint}
-                />
-                <Text style={[styles.label, active ? styles.labelActive : styles.labelInactive]}>
-                  {item.label}
-                </Text>
-              </GlassSurface>
+              {(pressed) => (
+                <BrutSurface
+                  tone={active ? 'primary' : 'surface'}
+                  pressed={pressed}
+                  shadow="sm"
+                  radius={THEME.radius.sm}
+                  contentStyle={styles.pill}
+                >
+                  <Symbol
+                    name={item.icon}
+                    size={14}
+                    color={active ? THEME.colors.ink : THEME.colors.textFaint}
+                  />
+                  <Text style={[styles.label, active ? styles.labelActive : styles.labelInactive]}>
+                    {item.label}
+                  </Text>
+                </BrutSurface>
+              )}
             </HapticButton>
           );
         })}
@@ -70,13 +78,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 38,
+    height: 36,
     paddingHorizontal: THEME.spacing.sm,
     paddingVertical: 0,
   },
-  label: { ...THEME.type.caption, fontSize: 13, fontWeight: '600' },
-  labelActive: { color: THEME.colors.text },
-  labelInactive: { color: THEME.colors.textFaint },
+  label: { ...THEME.type.captionStrong, fontSize: 13 },
+  labelActive: { color: THEME.colors.onSignal },
+  labelInactive: { color: THEME.colors.textMuted },
 });
 
 export default MapLegend;

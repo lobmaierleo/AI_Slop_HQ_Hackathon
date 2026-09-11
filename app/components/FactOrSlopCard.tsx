@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
@@ -28,7 +28,7 @@ const SHAKE_STEP_DURATION = 45;
 const STATEMENT_MAX_LINES = 5;
 const STATEMENT_MIN_FONT_SCALE = 0.75;
 
-/** Schützt die Beschriftung der Antwort-Pillen vor Überlauf bei schmalen Geräten. */
+/** Schützt die Beschriftung der Antwortblöcke vor Überlauf bei schmalen Geräten. */
 const ACTION_MIN_FONT_SCALE = 0.85;
 
 /** Eine korrekt erkannte Aussage spart eine LLM-Abfrage -- die Hälfte des Wertes einer Vor-Ort-Quest. */
@@ -81,7 +81,7 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
 
   return (
     <Animated.View style={{ transform: [{ translateX: shakeX }] }}>
-      <GlassSurface radius={THEME.radius.lg} style={styles.card}>
+      <BrutSurface radius={THEME.radius.md} style={styles.card}>
         <View style={styles.counterRow}>
           <Text style={styles.counter}>
             {index + 1} / {total}
@@ -98,61 +98,77 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
         </Text>
 
         {!answered ? (
-          // Beide Optionen bleiben bewusst gleich neutral -- ein Akzent
-          // gehört dem System, nicht der Verführung zur richtigen Antwort.
+          // Cyan und Pink sind gleich laut und beide nicht die Aktionsfarbe --
+          // keiner der zwei Wege wirkt dadurch wie der vorgesehene.
           <View style={styles.actions}>
             <HapticButton
               haptic="medium"
+              pressStyle="push"
               style={styles.actionSlot}
               onPress={() => handle(true)}
               accessibilityLabel="Echter Fakt"
             >
-              <GlassSurface radius={THEME.radius.pill} contentStyle={styles.actionContent}>
-                <Symbol name="checkmark.seal.fill" size={18} color={THEME.colors.text} />
-                <Text
-                  style={styles.actionText}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={ACTION_MIN_FONT_SCALE}
+              {(pressed) => (
+                <BrutSurface
+                  tone="tertiary"
+                  pressed={pressed}
+                  radius={THEME.radius.sm}
+                  contentStyle={styles.actionContent}
                 >
-                  Echter Fakt
-                </Text>
-              </GlassSurface>
+                  <Symbol name="checkmark.seal.fill" size={18} color={THEME.colors.ink} />
+                  <Text
+                    style={styles.actionText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={ACTION_MIN_FONT_SCALE}
+                  >
+                    Echter Fakt
+                  </Text>
+                </BrutSurface>
+              )}
             </HapticButton>
             <HapticButton
               haptic="medium"
+              pressStyle="push"
               style={styles.actionSlot}
               onPress={() => handle(false)}
               accessibilityLabel="AI Slop"
             >
-              <GlassSurface radius={THEME.radius.pill} contentStyle={styles.actionContent}>
-                <Symbol name="exclamationmark.triangle.fill" size={18} color={THEME.colors.text} />
-                <Text
-                  style={styles.actionText}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={ACTION_MIN_FONT_SCALE}
+              {(pressed) => (
+                <BrutSurface
+                  tone="secondary"
+                  pressed={pressed}
+                  radius={THEME.radius.sm}
+                  contentStyle={styles.actionContent}
                 >
-                  AI Slop
-                </Text>
-              </GlassSurface>
+                  <Symbol name="exclamationmark.triangle.fill" size={18} color={THEME.colors.ink} />
+                  <Text
+                    style={styles.actionText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={ACTION_MIN_FONT_SCALE}
+                  >
+                    AI Slop
+                  </Text>
+                </BrutSurface>
+              )}
             </HapticButton>
           </View>
         ) : (
           <View>
-            <GlassSurface radius={THEME.radius.md} flat style={styles.resultCard}>
+            <View
+              style={[
+                styles.resultCard,
+                { backgroundColor: wasCorrect ? THEME.colors.success : THEME.colors.error },
+              ]}
+            >
               <View style={styles.resultHeader}>
                 <Symbol
                   name={wasCorrect ? 'checkmark.seal.fill' : 'xmark.seal.fill'}
                   size={18}
-                  color={wasCorrect ? THEME.colors.success : THEME.colors.error}
+                  color={THEME.colors.ink}
                 />
-                <Text
-                  style={[
-                    styles.resultTitle,
-                    { color: wasCorrect ? THEME.colors.success : THEME.colors.error },
-                  ]}
-                >
+                <Text style={styles.resultTitle}>
                   {wasCorrect ? 'Richtig erkannt.' : 'Falsch erkannt.'}
                 </Text>
               </View>
@@ -160,14 +176,29 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
               {wasCorrect ? (
                 <Text style={styles.savedNote}>{TRIVIA_SAVED_LITERS_LABEL} Kühlwasser gespart.</Text>
               ) : null}
-            </GlassSurface>
+            </View>
 
-            <HapticButton haptic="light" style={styles.nextButton} onPress={onNext} accessibilityLabel="Weiter">
-              <Text style={styles.nextButtonText}>Weiter</Text>
+            <HapticButton
+              haptic="light"
+              pressStyle="push"
+              style={styles.nextButton}
+              onPress={onNext}
+              accessibilityLabel="Weiter"
+            >
+              {(pressed) => (
+                <BrutSurface
+                  tone="primary"
+                  pressed={pressed}
+                  radius={THEME.radius.sm}
+                  contentStyle={styles.nextButtonFace}
+                >
+                  <Text style={styles.nextButtonText}>Weiter</Text>
+                </BrutSurface>
+              )}
             </HapticButton>
           </View>
         )}
-      </GlassSurface>
+      </BrutSurface>
     </Animated.View>
   );
 }
@@ -180,8 +211,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   counter: {
-    ...THEME.type.caption,
-    color: THEME.colors.textFaint,
+    ...THEME.type.captionStrong,
+    color: THEME.colors.textMuted,
   },
   statement: {
     ...THEME.type.heading,
@@ -202,13 +233,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: THEME.spacing.xs,
     height: 56,
+    paddingHorizontal: THEME.spacing.xs,
   },
   actionText: {
     ...THEME.type.bodyStrong,
-    color: THEME.colors.text,
+    color: THEME.colors.onSignal,
+    flexShrink: 1,
   },
+  // Das Ergebnis ist die zweite und letzte Ebene: ein Farbblock mit Rahmen,
+  // ohne eigenen Schatten -- der gehoert der Karte darum.
   resultCard: {
     marginTop: THEME.spacing.xs,
+    padding: THEME.spacing.md,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -217,28 +256,29 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     ...THEME.type.bodyStrong,
+    color: THEME.colors.onSignal,
   },
   explanation: {
     ...THEME.type.body,
-    color: THEME.colors.textMuted,
+    color: THEME.colors.text,
     marginTop: THEME.spacing.sm,
   },
   savedNote: {
-    ...THEME.type.caption,
-    color: THEME.colors.textFaint,
+    ...THEME.type.captionStrong,
+    color: THEME.colors.text,
     marginTop: THEME.spacing.sm,
   },
   nextButton: {
+    marginTop: THEME.spacing.md,
+  },
+  nextButtonFace: {
     height: 50,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: THEME.spacing.md,
   },
   nextButtonText: {
     ...THEME.type.bodyStrong,
-    color: THEME.colors.onAccent,
+    color: THEME.colors.onSignal,
   },
 });
 

@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
@@ -119,17 +119,17 @@ export function PhotoQuestCard({ quest, done, onComplete }: Props) {
 
   const translateY = laserProgress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, Math.max(contentHeight - 2, 0)],
+    outputRange: [0, Math.max(contentHeight - 4, 0)],
   });
 
   return (
-    <GlassSurface radius={THEME.radius.lg} glow={done} style={styles.card}>
+    <BrutSurface radius={THEME.radius.md} style={styles.card}>
       <View onLayout={handleContentLayout}>
         <View style={styles.header}>
-          <View style={styles.symbolBadge}>
-            <Symbol name={quest.symbol} size={22} color={THEME.colors.primary} />
+          <View style={[styles.symbolBadge, done && styles.symbolBadgeDone]}>
+            <Symbol name={quest.symbol} size={22} color={THEME.colors.ink} />
           </View>
-          <View style={styles.badgePill}>
+          <View style={styles.badgeBox}>
             <Text style={styles.badgeText}>{quest.badge}</Text>
           </View>
         </View>
@@ -141,11 +141,22 @@ export function PhotoQuestCard({ quest, done, onComplete }: Props) {
         {!done ? (
           <HapticButton
             haptic="medium"
+            pressStyle="push"
             style={styles.scanButton}
             onPress={startScan}
             accessibilityLabel="Vor Ort bestätigen"
           >
-            <Text style={styles.scanButtonText}>Vor Ort bestätigen</Text>
+            {(pressed) => (
+              <BrutSurface
+                tone="primary"
+                pressed={pressed}
+                shadow="sm"
+                radius={THEME.radius.sm}
+                contentStyle={styles.scanButtonFace}
+              >
+                <Text style={styles.scanButtonText}>Vor Ort bestätigen</Text>
+              </BrutSurface>
+            )}
           </HapticButton>
         ) : (
           // Der eigentliche Zahltag: Fakt, Quelle und die gutgeschriebenen
@@ -156,9 +167,8 @@ export function PhotoQuestCard({ quest, done, onComplete }: Props) {
               { opacity: revealOpacity, transform: [{ translateY: revealTranslate }] },
             ]}
           >
-            <View style={styles.revealDivider} />
             <View style={styles.revealLabelRow}>
-              <Symbol name="checkmark.seal.fill" size={14} color={THEME.colors.primary} />
+              <Symbol name="checkmark.seal.fill" size={14} color={THEME.colors.ink} />
               <Text style={styles.revealLabel}>Entdeckt</Text>
             </View>
             <Text style={styles.factText}>{quest.fact}</Text>
@@ -183,7 +193,7 @@ export function PhotoQuestCard({ quest, done, onComplete }: Props) {
           </View>
         </View>
       ) : null}
-    </GlassSurface>
+    </BrutSurface>
   );
 }
 
@@ -197,27 +207,34 @@ const styles = StyleSheet.create({
     gap: THEME.spacing.sm,
   },
   symbolBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
+    width: 46,
+    height: 46,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgePill: {
+  // Erledigt wechselt die Fuellung auf Gruen -- beim Durchscrollen der 23
+  // Karten ist das der schnellste Unterschied.
+  symbolBadgeDone: {
+    backgroundColor: THEME.colors.success,
+  },
+  badgeBox: {
     paddingHorizontal: THEME.spacing.sm,
-    paddingVertical: 5,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.track,
+    paddingVertical: 4,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.surfaceSunken,
   },
   badgeText: {
-    ...THEME.type.caption,
+    ...THEME.type.eyebrow,
     fontSize: 11,
-    fontWeight: '600',
     lineHeight: 14,
-    color: THEME.colors.textMuted,
+    color: THEME.colors.text,
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
   title: {
     ...THEME.type.heading,
@@ -225,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: THEME.spacing.sm,
   },
   location: {
-    ...THEME.type.caption,
+    ...THEME.type.captionStrong,
     color: THEME.colors.textMuted,
     marginTop: 2,
   },
@@ -235,24 +252,24 @@ const styles = StyleSheet.create({
     marginTop: THEME.spacing.sm,
   },
   scanButton: {
+    marginTop: THEME.spacing.lg,
+  },
+  scanButtonFace: {
     height: 50,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: THEME.spacing.lg,
   },
   scanButtonText: {
     ...THEME.type.bodyStrong,
-    color: THEME.colors.onAccent,
+    color: THEME.colors.onSignal,
   },
   reveal: {
-    marginTop: THEME.spacing.lg,
-  },
-  revealDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: THEME.colors.hairline,
-    marginBottom: THEME.spacing.md,
+    marginTop: THEME.spacing.md,
+    padding: THEME.spacing.sm,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.success,
   },
   revealLabelRow: {
     flexDirection: 'row',
@@ -261,7 +278,7 @@ const styles = StyleSheet.create({
   },
   revealLabel: {
     ...THEME.type.eyebrow,
-    color: THEME.colors.primary,
+    color: THEME.colors.onSignal,
   },
   factText: {
     ...THEME.type.body,
@@ -277,50 +294,48 @@ const styles = StyleSheet.create({
   },
   source: {
     ...THEME.type.caption,
-    color: THEME.colors.textFaint,
+    color: THEME.colors.textMuted,
     flexShrink: 1,
   },
   waterGain: {
     ...THEME.type.bodyStrong,
-    color: THEME.colors.primary,
+    color: THEME.colors.text,
   },
+  // Waehrend des Abgleichs deckt die Karte sich selbst zu: schwarze Flaeche,
+  // ein gelber Balken laeuft durch. Kein Glas, kein Glow mehr.
   overlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: THEME.colors.fog,
-    borderRadius: THEME.radius.lg,
+    backgroundColor: THEME.colors.ink,
+    borderRadius: THEME.radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   laser: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 2,
+    height: 4,
     backgroundColor: THEME.colors.primary,
-    shadowColor: THEME.colors.primary,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
   },
   overlayTextWrap: {
     alignItems: 'center',
     paddingHorizontal: THEME.spacing.lg,
   },
   overlayText: {
-    ...THEME.type.caption,
-    color: THEME.colors.text,
+    ...THEME.type.captionStrong,
+    color: THEME.colors.surface,
     textAlign: 'center',
   },
   overlayVerified: {
     ...THEME.type.bodyStrong,
     color: THEME.colors.primary,
     textAlign: 'center',
-    marginTop: THEME.spacing.xs,
   },
 });
 

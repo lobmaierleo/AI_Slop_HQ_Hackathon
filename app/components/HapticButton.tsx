@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Animated, Pressable } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -26,23 +26,35 @@ type Props = {
   onPress?: () => void;
   haptic?: HapticKind;
   style?: StyleProp<ViewStyle>;
-  children?: React.ReactNode;
+  /**
+   * Als Funktion aufgerufen, bekommt sie den Druckzustand -- so kann eine
+   * BrutSurface darunter in ihren Schatten rutschen.
+   */
+  children?: React.ReactNode | ((pressed: boolean) => React.ReactNode);
   disabled?: boolean;
+  /**
+   * `'scale'` federt die Flaeche auf `scaleTo`. `'push'` laesst sie stattdessen
+   * in ihren Schatten rutschen -- die Signaturgeste dieses Stils. Dafuer muss
+   * `children` eine Funktion sein, die `pressed` weiterreicht.
+   */
+  pressStyle?: 'scale' | 'push';
   scaleTo?: number;
   accessibilityLabel?: string;
 };
 
-/** Bouncy Touch-Target: Haptik sofort beim Drücken, Feder-Skalierung auf 0.96. */
+/** Touch-Target mit Haptik sofort beim Druecken und sichtbarem Druckzustand. */
 export function HapticButton({
   onPress,
   haptic = 'light',
   style,
   children,
   disabled,
+  pressStyle = 'scale',
   scaleTo = 0.96,
   accessibilityLabel,
 }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
+  const [pressed, setPressed] = useState(false);
 
   const spring = (to: number) =>
     Animated.spring(scale, {
@@ -59,14 +71,26 @@ export function HapticButton({
       disabled={disabled}
       onPressIn={() => {
         if (disabled) return;
-        spring(scaleTo);
+        if (pressStyle === 'scale') spring(scaleTo);
+        else setPressed(true);
         fire(haptic).catch(() => {});
       }}
-      onPressOut={() => spring(1)}
+      onPressOut={() => {
+        if (pressStyle === 'scale') spring(1);
+        else setPressed(false);
+      }}
       onPress={disabled ? undefined : onPress}
     >
-      <Animated.View style={[{ transform: [{ scale }], opacity: disabled ? 0.5 : 1 }, style]}>
-        {children}
+      <Animated.View
+        style={[
+          {
+            transform: pressStyle === 'scale' ? [{ scale }] : undefined,
+            opacity: disabled ? 0.5 : 1,
+          },
+          style,
+        ]}
+      >
+        {typeof children === 'function' ? children(pressed) : children}
       </Animated.View>
     </Pressable>
   );

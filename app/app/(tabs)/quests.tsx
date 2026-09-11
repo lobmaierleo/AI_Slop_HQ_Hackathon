@@ -3,8 +3,8 @@ import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrutSurface } from '@/components/BrutSurface';
 import { FactOrSlopCard } from '@/components/FactOrSlopCard';
-import { GlassSurface } from '@/components/GlassSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { PhotoQuestCard } from '@/components/PhotoQuestCard';
 import { Symbol } from '@/components/Symbol';
@@ -137,15 +137,15 @@ export default function QuestsScreen() {
         <Text style={styles.subtitle}>Finde es selbst heraus, statt die KI zu fragen.</Text>
       </View>
 
-      <GlassSurface
-        radius={THEME.radius.pill}
-        flat
+      <BrutSurface
+        radius={THEME.radius.md}
         style={styles.segmentSurface}
         contentStyle={styles.segmentSurfaceContent}
       >
         <View style={styles.segmentRow} onLayout={handleContainerLayout}>
           {innerWidth > 0 ? (
             <Animated.View
+              pointerEvents="none"
               style={[
                 styles.segmentThumb,
                 {
@@ -167,7 +167,7 @@ export default function QuestsScreen() {
               <Text
                 style={[
                   styles.segmentLabel,
-                  { color: segment === entry.id ? THEME.colors.onAccent : THEME.colors.textMuted },
+                  { color: segment === entry.id ? THEME.colors.onSignal : THEME.colors.textMuted },
                 ]}
               >
                 {entry.label}
@@ -175,7 +175,7 @@ export default function QuestsScreen() {
             </HapticButton>
           ))}
         </View>
-      </GlassSurface>
+      </BrutSurface>
 
       <Text style={styles.progressLabel}>{progressLabel}</Text>
 
@@ -201,21 +201,37 @@ export default function QuestsScreen() {
           showsVerticalScrollIndicator={false}
         >
           {isTriviaDone ? (
-            <GlassSurface radius={THEME.radius.lg} style={styles.doneCard} contentStyle={styles.doneCardContent}>
-              <Symbol name="checkmark.seal.fill" size={28} color={THEME.colors.primary} />
+            <BrutSurface
+              radius={THEME.radius.md}
+              style={styles.doneCard}
+              contentStyle={styles.doneCardContent}
+            >
+              <View style={styles.doneIcon}>
+                <Symbol name="checkmark.seal.fill" size={28} color={THEME.colors.ink} />
+              </View>
               <Text style={styles.doneTitle}>Alle Aussagen geprüft.</Text>
               <Text style={styles.doneScore}>
                 {correctTriviaIds.length} von {TRIVIA_QUESTS.length} richtig erkannt
               </Text>
               <HapticButton
                 haptic="medium"
+                pressStyle="push"
                 style={styles.doneButton}
                 onPress={handleTriviaRestart}
                 accessibilityLabel="Nochmal"
               >
-                <Text style={styles.doneButtonText}>Nochmal</Text>
+                {(pressed) => (
+                  <BrutSurface
+                    tone="primary"
+                    pressed={pressed}
+                    radius={THEME.radius.sm}
+                    contentStyle={styles.doneButtonFace}
+                  >
+                    <Text style={styles.doneButtonText}>Nochmal</Text>
+                  </BrutSurface>
+                )}
               </HapticButton>
-            </GlassSurface>
+            </BrutSurface>
           ) : (
             <Animated.View
               style={{
@@ -273,12 +289,10 @@ const styles = StyleSheet.create({
     top: SEGMENT_CONTAINER_PADDING,
     left: SEGMENT_CONTAINER_PADDING,
     height: 40,
-    borderRadius: THEME.radius.pill,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
     backgroundColor: THEME.colors.primary,
-    shadowColor: THEME.colors.primaryGlow,
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
   },
   segmentButton: {
     flex: 1,
@@ -286,12 +300,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segmentLabel: {
-    ...THEME.type.caption,
-    fontWeight: '600',
+    ...THEME.type.captionStrong,
   },
   progressLabel: {
-    ...THEME.type.caption,
-    color: THEME.colors.textFaint,
+    ...THEME.type.captionStrong,
+    color: THEME.colors.textMuted,
     marginTop: THEME.spacing.sm,
   },
   body: {
@@ -316,6 +329,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: THEME.spacing.xl,
   },
+  doneIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   doneTitle: {
     ...THEME.type.heading,
     color: THEME.colors.text,
@@ -330,16 +353,16 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     marginTop: THEME.spacing.lg,
+  },
+  doneButtonFace: {
     height: 50,
     minWidth: 160,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: THEME.spacing.lg,
   },
   doneButtonText: {
     ...THEME.type.bodyStrong,
-    color: THEME.colors.onAccent,
+    color: THEME.colors.onSignal,
   },
 });

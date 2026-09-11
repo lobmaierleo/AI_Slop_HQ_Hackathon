@@ -3,7 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { Symbol, type SymbolName } from '@/components/Symbol';
 import { THEME } from '@/theme/colors';
 
@@ -44,58 +44,58 @@ const TAB_ICONS: Record<string, SymbolName> = {
   network: 'brain',
 };
 
-const PILL_INSET = 8;
+const BAR_HEIGHT = 62;
+const PILL_INSET = 5;
 
+/**
+ * Die Tab-Leiste: ein weisser Block mit Rahmen und hartem Schatten, der aktive
+ * Tab ein gelber Klotz. Die Feder, die den Klotz schiebt, ist geblieben --
+ * ohne sie wirkt der Wechsel abgehackt.
+ */
 export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarProps) {
   const insets = useSafeAreaInsets();
-  const [barWidth, setBarWidth] = useState(0);
+  const [rowWidth, setRowWidth] = useState(0);
   const pillX = useRef(new Animated.Value(0)).current;
 
   const activeIndex = state.index;
   const tabCount = state.routes.length;
 
   useEffect(() => {
-    if (barWidth <= 0) return;
-    const tabWidth = barWidth / tabCount;
+    if (rowWidth <= 0) return;
+    const tabWidth = rowWidth / tabCount;
     Animated.spring(pillX, {
       toValue: activeIndex * tabWidth + PILL_INSET,
       useNativeDriver: true,
       speed: 16,
       bounciness: 6,
     }).start();
-  }, [activeIndex, barWidth, tabCount, pillX]);
+  }, [activeIndex, rowWidth, tabCount, pillX]);
 
+  // Gemessen wird die Reihe selbst, nicht der Rahmen -- der haelt rechts und
+  // unten Platz fuer den Schatten frei und waere als Bezug zu breit.
   const handleLayout = (event: LayoutChangeEvent) => {
-    setBarWidth(event.nativeEvent.layout.width);
+    setRowWidth(event.nativeEvent.layout.width);
   };
 
-  const pillWidth = barWidth > 0 ? barWidth / tabCount - PILL_INSET * 2 : 0;
+  const pillWidth = rowWidth > 0 ? rowWidth / tabCount - PILL_INSET * 2 : 0;
 
   return (
-    <View
-      style={[styles.shadowWrapper, { bottom: Math.max(24, insets.bottom) }]}
-      onLayout={handleLayout}
-    >
-      <GlassSurface
-        radius={32}
-        intensity={70}
-        style={styles.glassContainer}
-        contentStyle={styles.glassContent}
-      >
-        {barWidth > 0 && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.pill,
-              {
-                width: pillWidth,
-                transform: [{ translateX: pillX }],
-              },
-            ]}
-          />
-        )}
+    <View style={[styles.wrapper, { bottom: Math.max(20, insets.bottom) }]}>
+      <BrutSurface radius={THEME.radius.md} style={styles.bar} contentStyle={styles.barContent}>
+        <View style={styles.row} onLayout={handleLayout}>
+          {rowWidth > 0 && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.pill,
+                {
+                  width: pillWidth,
+                  transform: [{ translateX: pillX }],
+                },
+              ]}
+            />
+          )}
 
-        <View style={styles.row}>
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
             const label = options.title ?? route.name;
@@ -124,13 +124,11 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
                 onPress={onPress}
                 style={styles.item}
               >
-                <View style={{ opacity: focused ? 1 : 0.6 }}>
-                  <Symbol
-                    name={icon}
-                    size={20}
-                    color={focused ? THEME.colors.primary : THEME.colors.textMuted}
-                  />
-                </View>
+                <Symbol
+                  name={icon}
+                  size={20}
+                  color={focused ? THEME.colors.ink : THEME.colors.textFaint}
+                />
                 <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}>
                   {label}
                 </Text>
@@ -138,41 +136,36 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
             );
           })}
         </View>
-      </GlassSurface>
+      </BrutSurface>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  shadowWrapper: {
+  wrapper: {
     position: 'absolute',
     left: 0,
     right: 0,
-    marginHorizontal: 24,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'transparent',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    marginHorizontal: THEME.spacing.lg,
+    height: BAR_HEIGHT + THEME.shadow.offset,
   },
-  glassContainer: { flex: 1 },
-  // Die Leiste traegt ihr eigenes Layout; die Standard-Polsterung der
-  // Glasflaeche wuerde die vier Felder ungleich stauchen.
-  glassContent: { flex: 1, padding: 0 },
-  pill: {
-    position: 'absolute',
-    top: 8,
-    bottom: 8,
-    left: 0,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
-  },
+  bar: { flex: 1 },
+  // Die Leiste traegt ihr eigenes Layout; die Standard-Polsterung der Flaeche
+  // wuerde die vier Felder ungleich stauchen.
+  barContent: { padding: 0 },
   row: {
     flex: 1,
     flexDirection: 'row',
+  },
+  pill: {
+    position: 'absolute',
+    top: PILL_INSET,
+    bottom: PILL_INSET,
+    left: 0,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
   },
   item: {
     flex: 1,
@@ -183,10 +176,10 @@ const styles = StyleSheet.create({
     marginTop: 3,
     ...THEME.type.eyebrow,
     fontSize: 11,
-    letterSpacing: 0,
+    letterSpacing: 0.2,
   },
   labelActive: {
-    color: THEME.colors.primary,
+    color: THEME.colors.onSignal,
   },
   labelInactive: {
     color: THEME.colors.textMuted,

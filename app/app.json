@@ -5,28 +5,27 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "selberdenken",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FDF6E3",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "art.electronica.selberdenken",
       "appleTeamId": "495SM77253"
     },
+    "android": {
+      "package": "art.electronica.selberdenken",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#FDF6E3"
+      }
+    },
     "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": false
-        }
-      ],
+      ["expo-router", { "origin": false }],
       "expo-status-bar",
       "expo-font",
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "Zeigt dir, welcher Entdeckungsort gerade am nächsten liegt."
-        }
-      ]
+      ["expo-location", {
+        "locationWhenInUsePermission": "Zeigt dir, welcher Entdeckungsort gerade am nächsten liegt."
+      }]
     ]
   }
 }

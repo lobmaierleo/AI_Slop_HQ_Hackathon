@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { preloadSymbolFont } from '@/lib/symbolFont';
 import { GameProvider, useGameStore } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
 
@@ -30,10 +32,16 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  // Android zeichnet die Icons aus einer Schriftdatei; ohne Vorladen bleibt
+  // der erste Frame leer. Auf iOS ist der Aufruf eine leere Zusage.
+  useEffect(() => {
+    preloadSymbolFont().catch(() => undefined);
+  }, []);
+
   return (
     <SafeAreaProvider>
       <GameProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <RootNavigator />
       </GameProvider>
     </SafeAreaProvider>

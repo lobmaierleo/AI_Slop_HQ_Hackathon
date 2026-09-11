@@ -32,7 +32,7 @@ Ziel ist gewinnen.
 | `data/festival/` | Festival-Export (886 Projekte, 779 Slots, 511 Kontakte, 156 Orte) |
 | `data/linz/` | 23 Linzer Datensätze, je mit eigener `README.md` |
 | `data/derived/` | Abgeleitetes, gitignored (Embeddings o. ä.) |
-| `app/` | **SELBERDENKEN** — Expo SDK 57 / React Native, Expo Router, `react-native-maps` (Apple Maps). Nur iOS |
+| `app/` | **SELBERDENKEN** — Expo SDK 57 / React Native, Expo Router, `react-native-maps`. iOS und Android, beides in Expo Go |
 | `tasks/todo.md` | Zwei-Tages-Plan · `tasks/lessons.md` Korrekturen |
 
 ## Befehle
@@ -45,36 +45,39 @@ python3 $TOOL verify  data/festival/ars-festival-2026.json       # Integrität p
 python3 $TOOL summary data/festival/ars-festival-2026.json       # Kennzahlen
 python3 scripts/build_quests.py                     # app/data/quests.json aus Realdaten
 python3 scripts/build_graph.py                      # app/data/graph.json (Synapsen-Netz)
-cd app && npx expo start                            # auf dem iPhone oeffnen
+cd app && npx expo start                            # auf dem iPhone oder Android-Geraet oeffnen
 cd app && npx tsc --noEmit                          # Typpruefung
 ```
 
 ## Design
 
-`DESIGN.md` im Repo-Root ist die verbindliche Vorgabe für alles Sichtbare. Die Tokens liegen in
-`app/theme/colors.ts` (`THEME.colors`, `THEME.type`, `THEME.glass`, `THEME.radius`,
-`THEME.spacing`) — **niemals Hex-Werte oder Pixelmaße inline schreiben**, immer über die Tokens.
-Jede Glasfläche geht durch `app/components/GlassSurface.tsx`, jedes Icon durch
-`app/components/Symbol.tsx` (SF Symbols). **Keine Emojis**, nirgends.
+`DESIGN.md` im Repo-Root ist die verbindliche Vorgabe für alles Sichtbare. Der Abschnitt
+`## Override: SELBERDENKEN Neobrutalismus` gilt dabei vor dem Apple-Teil darüber — die App ist
+seit 11.09.2026 heller Neobrutalismus, nicht mehr Dunkel-plus-Glas.
 
-SELBERDENKEN nutzt bewusst die **Dunkel-Hälfte** von `DESIGN.md` plus Glas, Glow und Verläufe als
-Materialsprache — die einzige bewusste Abweichung, dokumentiert im Kopf von `app/theme/colors.ts`.
+Die Tokens liegen in `app/theme/colors.ts` (`THEME.colors`, `THEME.category`, `THEME.type`,
+`THEME.border`, `THEME.shadow`, `THEME.radius`, `THEME.spacing`) — **niemals Hex-Werte oder
+Pixelmaße inline schreiben**, immer über die Tokens. Jede Fläche geht durch
+`app/components/BrutSurface.tsx`, jedes Icon durch `app/components/Symbol.tsx`.
+**Keine Emojis**, nirgends.
 
 Die Regeln, an denen Entwürfe am ehesten scheitern:
 
-- **Ein einziger Akzent.** Action Blue `primary` trägt jedes interaktive Element. Es gibt keine
-  zweite Markenfarbe. Auf dunklen Flächen `primary-on-dark`, niemals umgekehrt.
-- **Fließtext 17px, nicht 16px**, Zeilenhöhe 1.47. Überschriften ab 17px mit negativer Laufweite.
-  Steht als `THEME.type.body` fertig bereit.
-- **Gewicht 500 existiert nicht.** Die Leiter ist 300 / 400 / 600 / 700.
-- **Druckzustand jedes Buttons** ist `scale(0.95)` — liefert `HapticButton` über `scaleTo`.
-- *Aufgehoben für SELBERDENKEN:* „Kein Schatten auf Chrome" und „randlose Tiles ohne Verläufe".
-  Auf Schwarz ist Glas das Material, und der Glow des Akzents ist die Tiefe. Alles andere aus
-  `DESIGN.md` gilt unverändert.
+- **Gelb ist die Aktionsfarbe und erscheint nur als Fläche, nie als Schrift.** Gelb auf Creme
+  hat keinen Kontrast. Schrift auf Signalflächen ist schwarz (`colors.onSignal`).
+- **Der harte Schatten ist eine eigene schwarze View**, keine Style-Prop. `elevation` auf
+  Android zeichnet immer weich und ohne steuerbaren Versatz.
+- **Jede Aufrufstelle braucht rechts und unten `shadow.offset` Luft**, sonst wird der Schatten
+  abgeschnitten.
+- **Fließtext 17px, nicht 16px**, Zeilenhöhe 25. Steht als `THEME.type.body` fertig bereit.
+- **Gewicht 500 existiert nicht.** Die Leiter ist 300 / 400 / 600 / 700 / 800.
+- **Druckzustand jedes Buttons.** `HapticButton` liefert `scale(0.95)` über `scaleTo` oder,
+  auf Flächen mit Schatten, `pressStyle="push"`.
 
-Für Datenvisualisierung bleibt die Auslegung: Der Akzent gehört der wichtigsten Ebene, alle
-weiteren Kategorien laufen über die Graustufen des Systems statt über zusätzliche Farbtöne.
-Auf der Karte heißt das: entdeckte Orte in `primary`, alles andere grau.
+Für Datenvisualisierung gilt: Kategorie heißt **Farbe und Form zugleich**, aus
+`app/lib/categories.ts`. Karte und Synapsen-Netz lesen dieselbe Tabelle, damit sie nicht
+auseinanderlaufen. Auf der Karte heißt entdeckt: größer, eckig, farbig, mit Schatten und mit
+Namen — unentdeckt bleibt ein kleiner weißer Kreis.
 
 ## Arbeitsregeln
 

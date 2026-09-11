@@ -291,6 +291,63 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
 - Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
 - Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 
+## Override: SELBERDENKEN Neobrutalismus
+
+Alles oberhalb dieser Zeile beschreibt das Apple-System und bleibt die dokumentierte
+Grundlage des Repos — `docs/` und die vier Hackathon-Skills verweisen darauf. Die App unter
+`app/` folgt seit dem 11.09.2026 bewusst einer anderen Materialsprache: hellem
+Neobrutalismus. Beim Community-Voting wird ein Gerät herumgereicht, die ersten 60 Sekunden
+entscheiden, und der sichtbare Bruch gegenüber den anderen Einreichungen ist der Zweck.
+
+Die Tokens dazu stehen in `app/theme/colors.ts` und sind die einzige Quelle. Kein Hex-Wert
+und kein Pixelmaß wird inline geschrieben.
+
+### Aufgehoben für `app/`
+
+- **Ein einziger Akzent.** Es gibt drei Signalfarben (Gelb, Pink, Cyan) plus fünf
+  Kategoriefarben für die Datenvisualisierung. Action Blue kommt nicht mehr vor.
+- **Keine Schatten auf Karten und Buttons.** Der harte Versatzschatten ist hier das
+  tragende Mittel und sitzt auf jeder Fläche.
+- **Keine dekorativen Rahmen.** Der 3px-Rahmen ist die Signaturform.
+- **Pill-CTAs.** Radien sind flach; `radius.pill` bleibt nur für runde Punkte übrig.
+- **Wechsel heller und dunkler Vollflächen als Gliederung.** Der Grund ist durchgehend
+  Creme; gegliedert wird über Rahmen und Farbblöcke.
+- **Akzent plus Graustufen in der Datenvisualisierung.** Fünf Knotentypen lassen sich
+  grau nicht auseinanderhalten. Stattdessen Farbe *und* Form je Kategorie, damit die
+  Unterscheidung auch ohne Farbsehen trägt.
+
+### Neu
+
+| Was | Wert |
+|---|---|
+| Grund | Creme `#FDF6E3`, Karten Weiß, Vertiefungen `#F4EAD2` |
+| Rahmen | `border.width` 3px, `border.thin` 2px, immer Schwarz |
+| Schatten | `shadow.offset` 6px, `shadow.offsetSm` 4px, Schwarz, **ohne Weichzeichnung** |
+| Signalfarben | Gelb `#FFD100` (Aktion), Pink `#FF5FA2`, Cyan `#22D3EE` |
+| Status | `success` `#5BE37D`, `error` `#FF5C4D` |
+| Radien | 0 / 4 / 8 / 12 / 16 / pill |
+| Gewicht | die Leiter endet jetzt bei 800 |
+| Kategorien | `water` Cyan, `tree` Limette, `venue` Pink, `power` Gelb, `wifi` Violett |
+
+Zwei Regeln, die aus der Palette folgen:
+
+- **Schrift auf Signalflächen ist schwarz**, nie weiß (`colors.onSignal`).
+- **Gelb erscheint nur als Fläche, nie als Schrift.** Gelb auf Creme hat keinen Kontrast.
+
+Jede Fläche läuft durch `app/components/BrutSurface.tsx`. Der Schatten ist dort eine eigene
+schwarze View hinter der Karte und keine Style-Prop: iOS könnte ihn über `shadowRadius: 0`
+hart zeichnen, Android nicht — `elevation` rendert immer einen weichgezeichneten
+Material-Schatten ohne steuerbaren Versatz.
+
+### Unverändert gültig
+
+- Fließtext 17px bei Zeilenhöhe 25, Überschriften mit negativer Laufweite.
+- Gewicht 500 existiert nicht. Die Leiter ist 300 / 400 / 600 / 700 / 800.
+- Jeder Button hat einen Druckzustand — hier `scale(0.95)` oder, auf Flächen mit Schatten,
+  der Druck in den eigenen Schatten (`HapticButton` mit `pressStyle="push"`).
+- Keine Emojis. Jedes Icon läuft durch `app/components/Symbol.tsx`.
+- Jeder sichtbare Wert kommt aus den Tokens.
+
 ## Colors
 
 > **Source pages analyzed:** homepage, environment, store, iPhone 17 Pro buy page, accessories index. The color system is identical across all five surfaces; only the surface-mode mix differs.

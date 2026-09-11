@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import type { PhotoQuest } from '@/state/useGameStore';
@@ -38,10 +38,10 @@ export function MapQuestCard({ quest, completed, onNavigate, onClose }: Props) {
 
   return (
     <Animated.View style={style}>
-      <GlassSurface radius={THEME.radius.lg} glow={completed} contentStyle={styles.card}>
+      <BrutSurface radius={THEME.radius.md} contentStyle={styles.card}>
         <View style={styles.header}>
-          <View style={styles.badge}>
-            <Symbol name={quest.symbol} size={17} color={THEME.colors.primary} />
+          <View style={[styles.badge, completed && styles.badgeDone]}>
+            <Symbol name={quest.symbol} size={17} color={THEME.colors.ink} />
           </View>
           <View style={styles.headerText}>
             <Text style={styles.title} numberOfLines={2}>
@@ -58,7 +58,7 @@ export function MapQuestCard({ quest, completed, onNavigate, onClose }: Props) {
             onPress={onClose}
             accessibilityLabel="Schließen"
           >
-            <Symbol name="xmark" size={14} color={THEME.colors.textFaint} />
+            <Symbol name="xmark" size={14} color={THEME.colors.ink} />
           </HapticButton>
         </View>
 
@@ -66,7 +66,7 @@ export function MapQuestCard({ quest, completed, onNavigate, onClose }: Props) {
           <>
             <Text style={styles.fact}>{quest.fact}</Text>
             <View style={styles.foot}>
-              <Symbol name="checkmark.seal.fill" size={14} color={THEME.colors.success} />
+              <Symbol name="checkmark.seal.fill" size={14} color={THEME.colors.ink} />
               <Text style={styles.foundText}>Entdeckt</Text>
               <Text style={styles.liters}>
                 +{quest.waterLiters.toFixed(1).replace('.', ',')} L
@@ -80,15 +80,25 @@ export function MapQuestCard({ quest, completed, onNavigate, onClose }: Props) {
             </Text>
             <HapticButton
               haptic="medium"
-              style={styles.cta}
+              pressStyle="push"
               onPress={onNavigate}
               accessibilityLabel="Zur Quest"
             >
-              <Text style={styles.ctaText}>Zur Quest</Text>
+              {(pressed) => (
+                <BrutSurface
+                  tone="primary"
+                  pressed={pressed}
+                  shadow="sm"
+                  radius={THEME.radius.sm}
+                  contentStyle={styles.cta}
+                >
+                  <Text style={styles.ctaText}>Zur Quest</Text>
+                </BrutSurface>
+              )}
             </HapticButton>
           </>
         )}
-      </GlassSurface>
+      </BrutSurface>
     </Animated.View>
   );
 }
@@ -100,33 +110,46 @@ const styles = StyleSheet.create({
   badge: {
     width: 38,
     height: 38,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  badgeDone: { backgroundColor: THEME.colors.success },
   title: { ...THEME.type.bodyStrong, color: THEME.colors.text },
-  location: { ...THEME.type.caption, color: THEME.colors.textFaint },
+  location: { ...THEME.type.caption, color: THEME.colors.textMuted },
   close: {
     width: 30,
     height: 30,
-    borderRadius: THEME.radius.pill,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.surfaceSunken,
     alignItems: 'center',
     justifyContent: 'center',
   },
   teaser: { ...THEME.type.body, color: THEME.colors.textMuted },
   fact: { ...THEME.type.body, color: THEME.colors.text },
-  foot: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  foundText: { ...THEME.type.caption, color: THEME.colors.success, flex: 1 },
-  liters: { ...THEME.type.bodyStrong, color: THEME.colors.primary },
+  foot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: THEME.spacing.xs,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.success,
+  },
+  foundText: { ...THEME.type.captionStrong, color: THEME.colors.onSignal, flex: 1 },
+  liters: { ...THEME.type.bodyStrong, color: THEME.colors.onSignal },
   cta: {
     height: 46,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaText: { ...THEME.type.bodyStrong, color: THEME.colors.onAccent },
+  ctaText: { ...THEME.type.bodyStrong, color: THEME.colors.onSignal },
 });
 
 export default MapQuestCard;

@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface, type Tone } from '@/components/BrutSurface';
 import { Symbol } from '@/components/Symbol';
 import { SynapseGraph } from '@/components/SynapseGraph';
 import { EDGES, activeEdges } from '@/lib/net';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
+
+/** Seitliche Luft des Graphen -- er darf breiter sein als der Fliesstext. */
+const GRAPH_MARGIN = THEME.spacing.xs;
 
 export default function NetworkScreen() {
   const { completedQuestIds, savedWaterLiters, answeredTriviaIds, correctTriviaIds, completedPhotos } =
@@ -15,7 +18,7 @@ export default function NetworkScreen() {
   const { width } = useWindowDimensions();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const size = width - THEME.spacing.md * 2;
+  const size = width - GRAPH_MARGIN * 2;
   const active = useMemo(() => activeEdges(completedQuestIds).length, [completedQuestIds]);
 
   // Ohne Antwort gibt es keine Quote. 100 % bei null Versuchen waere gelogen.
@@ -37,13 +40,15 @@ export default function NetworkScreen() {
         </Text>
 
         <View style={styles.metrics}>
-          <Metric label="Synapsen" value={`${active}`} caption={`von ${EDGES.length}`} />
+          <Metric tone="secondary" label="Synapsen" value={`${active}`} caption={`von ${EDGES.length}`} />
           <Metric
+            tone="tertiary"
             label="Wasser"
             value={savedWaterLiters.toFixed(1).replace('.', ',')}
             caption="Liter gespart"
           />
           <Metric
+            tone="primary"
             label="Autonomie"
             value={autonomy === null ? '–' : `${autonomy} %`}
             caption={
@@ -62,17 +67,17 @@ export default function NetworkScreen() {
         </View>
 
         {selected ? (
-          <GlassSurface radius={THEME.radius.lg} glow={unlocked} contentStyle={styles.detail}>
+          <BrutSurface radius={THEME.radius.md} contentStyle={styles.detail}>
             <View style={styles.detailHead}>
-              <View style={styles.badge}>
-                <Symbol name={selected.symbol} size={17} color={THEME.colors.primary} />
+              <View style={[styles.badge, unlocked && styles.badgeDone]}>
+                <Symbol name={selected.symbol} size={17} color={THEME.colors.ink} />
               </View>
               <View style={styles.detailHeadText}>
                 <Text style={styles.detailTitle}>{selected.title}</Text>
                 <Text style={styles.detailLocation}>{selected.location}</Text>
               </View>
-              <Pressable onPress={() => setSelectedId(null)} hitSlop={12}>
-                <Symbol name="xmark" size={15} color={THEME.colors.textFaint} />
+              <Pressable onPress={() => setSelectedId(null)} hitSlop={12} style={styles.close}>
+                <Symbol name="xmark" size={15} color={THEME.colors.ink} />
               </Pressable>
             </View>
 
@@ -82,7 +87,7 @@ export default function NetworkScreen() {
                   <Symbol
                     name={completedPhotos[selected.id] ? 'photo.fill' : 'checkmark.seal.fill'}
                     size={15}
-                    color={THEME.colors.success}
+                    color={THEME.colors.ink}
                   />
                   <Text style={styles.proofText}>Vor Ort bestätigt</Text>
                 </View>
@@ -105,11 +110,11 @@ export default function NetworkScreen() {
                 </View>
               </>
             )}
-          </GlassSurface>
+          </BrutSurface>
         ) : (
           <Text style={styles.hint}>
             {completedQuestIds.length === 0
-              ? 'Noch ist alles dunkel. Geh zum ersten Ort, dann beginnt das Netz zu leuchten.'
+              ? 'Noch ist jeder Knoten ein leerer Umriss. Geh zum ersten Ort, dann bekommt er Form und Farbe.'
               : 'Tippe einen Knoten an, um zu sehen, was dort steht.'}
           </Text>
         )}
@@ -118,9 +123,25 @@ export default function NetworkScreen() {
   );
 }
 
-function Metric({ label, value, caption }: { label: string; value: string; caption: string }) {
+function Metric({
+  tone,
+  label,
+  value,
+  caption,
+}: {
+  tone: Tone;
+  label: string;
+  value: string;
+  caption: string;
+}) {
   return (
-    <GlassSurface radius={THEME.radius.md} flat style={styles.metric} contentStyle={styles.metricBody}>
+    <BrutSurface
+      tone={tone}
+      shadow="sm"
+      radius={THEME.radius.sm}
+      style={styles.metric}
+      contentStyle={styles.metricBody}
+    >
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
         {value}
@@ -128,7 +149,7 @@ function Metric({ label, value, caption }: { label: string; value: string; capti
       <Text style={styles.metricCaption} numberOfLines={1}>
         {caption}
       </Text>
-    </GlassSurface>
+    </BrutSurface>
   );
 }
 
@@ -140,18 +161,23 @@ const styles = StyleSheet.create({
     paddingBottom: THEME.tabBarClearance,
     gap: THEME.spacing.md,
   },
-  eyebrow: { ...THEME.type.eyebrow, color: THEME.colors.primary },
+  eyebrow: { ...THEME.type.eyebrow, color: THEME.colors.text },
   title: { ...THEME.type.title, color: THEME.colors.text, marginTop: -THEME.spacing.xs },
   lead: { ...THEME.type.body, color: THEME.colors.textMuted },
 
   metrics: { flexDirection: 'row', gap: THEME.spacing.sm },
   metric: { flex: 1 },
   metricBody: { padding: THEME.spacing.sm, gap: 2 },
-  metricLabel: { ...THEME.type.eyebrow, fontSize: 11, color: THEME.colors.textFaint },
+  metricLabel: { ...THEME.type.eyebrow, fontSize: 11, color: THEME.colors.onSignal },
   metricValue: { ...THEME.type.heading, color: THEME.colors.text },
-  metricCaption: { ...THEME.type.caption, fontSize: 12, color: THEME.colors.textFaint },
+  metricCaption: { ...THEME.type.caption, fontSize: 12, color: THEME.colors.textMuted },
 
-  graphWrap: { alignItems: 'center' },
+  // Der Graph darf breiter sein als der Text daneben -- er ist das Schaustueck
+  // dieses Tabs, nicht eine Abbildung darin.
+  graphWrap: {
+    alignItems: 'center',
+    marginHorizontal: -(THEME.spacing.md - GRAPH_MARGIN),
+  },
 
   detail: { padding: THEME.spacing.md, gap: THEME.spacing.sm },
   detailHead: { flexDirection: 'row', alignItems: 'center', gap: THEME.spacing.sm },
@@ -159,27 +185,51 @@ const styles = StyleSheet.create({
   badge: {
     width: 34,
     height: 34,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeDone: { backgroundColor: THEME.colors.success },
+  close: {
+    width: 30,
+    height: 30,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.surfaceSunken,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailTitle: { ...THEME.type.bodyStrong, color: THEME.colors.text },
-  detailLocation: { ...THEME.type.caption, color: THEME.colors.textFaint },
-  proof: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  proofText: { ...THEME.type.caption, color: THEME.colors.success },
+  detailLocation: { ...THEME.type.caption, color: THEME.colors.textMuted },
+  proof: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: THEME.spacing.xs,
+    paddingVertical: 3,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.success,
+  },
+  proofText: { ...THEME.type.captionStrong, color: THEME.colors.onSignal },
   fact: { ...THEME.type.body, color: THEME.colors.text },
   teaser: { ...THEME.type.body, color: THEME.colors.textMuted },
   detailFoot: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: THEME.colors.hairline,
+    borderTopWidth: THEME.border.thin,
+    borderTopColor: THEME.border.color,
     paddingTop: THEME.spacing.sm,
   },
-  source: { ...THEME.type.caption, color: THEME.colors.textFaint, flex: 1 },
-  liters: { ...THEME.type.bodyStrong, color: THEME.colors.primary },
+  source: { ...THEME.type.caption, color: THEME.colors.textMuted, flex: 1 },
+  liters: { ...THEME.type.bodyStrong, color: THEME.colors.text },
   litersMuted: { ...THEME.type.bodyStrong, color: THEME.colors.textFaint },
-  hint: { ...THEME.type.caption, color: THEME.colors.textFaint, textAlign: 'center' },
+  hint: { ...THEME.type.captionStrong, color: THEME.colors.textMuted, textAlign: 'center' },
 });

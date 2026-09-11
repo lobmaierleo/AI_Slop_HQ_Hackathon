@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polygon, Polyline } from 'react-native-maps';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { LatLng, Region } from 'react-native-maps';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GlassSurface } from '@/components/GlassSurface';
+import { BrutSurface } from '@/components/BrutSurface';
 import { MapLegend } from '@/components/MapLegend';
 import type { MapLayerKey } from '@/components/MapLegend';
 import { MapQuestCard } from '@/components/MapQuestCard';
 import { Symbol } from '@/components/Symbol';
+import { CATEGORY_META, categoryOf, shortLabel } from '@/lib/categories';
 import placesData from '@/data/places.json';
 import { EDGES, formatDistance, meters } from '@/lib/net';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
@@ -48,36 +48,25 @@ function computeStartRegion(): Region {
 
 const START_REGION = computeStartRegion();
 
-/** Grosszuegig ueber den ganzen Grossraum Linz, damit der Nebel nie endet. */
-const FOG_OUTER: LatLng[] = [
-  { latitude: 48.42, longitude: 14.12 },
-  { latitude: 48.42, longitude: 14.48 },
-  { latitude: 48.18, longitude: 14.48 },
-  { latitude: 48.18, longitude: 14.12 },
+/**
+ * `showsPointsOfInterests` wirkt nur auf Apple Maps. Auf Android blendet erst
+ * dieser Stil Googles eigene Beschriftungen aus -- sonst konkurrieren sie mit
+ * den eigenen Markern.
+ */
+const HIDE_POI_STYLE = [
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
 ];
 
-const CLEAR_RADIUS_M = 190;
-const CLEAR_SEGMENTS = 24;
-
 /**
- * Ein Loch im Nebel um einen entdeckten Ort.
- *
- * Die Punkte laufen gegen den Uhrzeigersinn, waehrend FOG_OUTER im
- * Uhrzeigersinn liegt: MapKit erwartet Loecher in umgekehrter
- * Windungsrichtung zur Aussenkontur, sonst bleibt die Flaeche komplett
- * schwarz statt aufzureissen.
+ * Der entdeckte Marker ist hoeher als breit: Quadrat oben, Namenskaestchen
+ * darunter. Der Anker muss deshalb auf die Mitte des Quadrats zeigen und nicht
+ * auf die Mitte der Flaeche, sonst sitzt der Ort neben seinem Punkt.
  */
-function clearing(lat: number, lon: number): LatLng[] {
-  const dLat = CLEAR_RADIUS_M / 111320;
-  const dLon = dLat / Math.cos((lat * Math.PI) / 180);
-  return Array.from({ length: CLEAR_SEGMENTS }, (_, i) => {
-    const a = -(i / CLEAR_SEGMENTS) * 2 * Math.PI;
-    return {
-      latitude: lat + Math.sin(a) * dLat,
-      longitude: lon + Math.cos(a) * dLon,
-    };
-  });
-}
+const MARKER_SIZE = 20;
+const MARKER_WRAP_W = 104;
+const MARKER_WRAP_H = 46;
+const MARKER_ANCHOR = { x: 0.5, y: MARKER_SIZE / 2 / MARKER_WRAP_H };
 
 export default function MapScreen() {
   const router = useRouter();
@@ -120,11 +109,6 @@ export default function MapScreen() {
 
   const done = useMemo(() => new Set(completedQuestIds), [completedQuestIds]);
 
-  const fogHoles = useMemo(
-    () => PHOTO_QUESTS.filter((q) => done.has(q.id)).map((q) => clearing(q.lat, q.lon)),
-    [done],
-  );
-
   /** Nur Kanten, deren beide Enden entdeckt sind, spannen sich ueber die Stadt. */
   const synapses = useMemo(() => {
     const at = new Map(PHOTO_QUESTS.map((q) => [q.id, q]));
@@ -135,13 +119,14 @@ export default function MapScreen() {
         if (!a || !b) return null;
         return {
           key: `${e.a}-${e.b}`,
+          color: CATEGORY_META[categoryOf(a.type)].color,
           coords: [
             { latitude: a.lat, longitude: a.lon },
             { latitude: b.lat, longitude: b.lon },
           ],
         };
       })
-      .filter((s): s is { key: string; coords: LatLng[] } => s !== null);
+      .filter((s): s is { key: string; color: string; coords: LatLng[] } => s !== null);
   }, [done]);
 
   /** Der naechste noch unentdeckte Ort -- die eine Zahl, die das Radar braucht. */
@@ -190,24 +175,33 @@ export default function MapScreen() {
 
   // Marker bleiben bewusst statisch: eine laufende Animation zwingt
   // tracksViewChanges auf true, und 23 sich neu zeichnende Marker machen das
-  // Schwenken der Karte zaeh. Das Pulsieren gehoert in den Netz-Tab.
+  // Schwenken der Karte zaeh. Das Aufploppen gehoert in den Netz-Tab.
+  //
+  // Ohne Nebel muss der Marker selbst den Unterschied tragen. Entdeckt heisst
+  // deshalb gleichzeitig: groesser, eckig, farbig, mit Schatten und mit Namen.
   const questMarkers = useMemo(
     () =>
       PHOTO_QUESTS.map((quest) => {
         const found = done.has(quest.id);
+        const color = CATEGORY_META[categoryOf(quest.type)].color;
         return (
           <Marker
             key={quest.id}
             coordinate={{ latitude: quest.lat, longitude: quest.lon }}
-            anchor={{ x: 0.5, y: 0.5 }}
+            anchor={found ? MARKER_ANCHOR : { x: 0.5, y: 0.5 }}
             tracksViewChanges={false}
             onPress={() => setSelectedQuest(quest)}
             zIndex={found ? 12 : 10}
           >
             {found ? (
               <View style={styles.foundWrap}>
-                <View style={styles.foundHalo} />
-                <View style={styles.foundCore} />
+                <View style={styles.foundShadow} />
+                <View style={[styles.foundCore, { backgroundColor: color }]} />
+                <View style={styles.foundLabel}>
+                  <Text style={styles.foundLabelText} numberOfLines={1}>
+                    {shortLabel(quest.title)}
+                  </Text>
+                </View>
               </View>
             ) : (
               <View style={styles.unknownDot} />
@@ -229,27 +223,25 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
+        // Android kennt ohnehin nur Google Maps; die Zeile schreibt die Absicht
+        // trotzdem hin, statt sie dem Standardwert zu ueberlassen.
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         initialRegion={START_REGION}
-        userInterfaceStyle="dark"
+        userInterfaceStyle="light"
+        customMapStyle={HIDE_POI_STYLE}
         showsUserLocation
         showsMyLocationButton={false}
         showsPointsOfInterests={false}
         showsCompass={false}
         onPress={() => setSelectedQuest(null)}
       >
-        <Polygon
-          coordinates={FOG_OUTER}
-          holes={fogHoles.length ? fogHoles : undefined}
-          fillColor={THEME.colors.fog}
-          strokeWidth={0}
-          tappable={false}
-        />
-
+        {/* Schwarze Fassung unten, Kategoriefarbe darueber -- auf heller Karte
+            lesbarer als der fruehere Schein. */}
         {synapses.map((s) => (
           <Polyline
-            key={`glow-${s.key}`}
+            key={`case-${s.key}`}
             coordinates={s.coords}
-            strokeColor={THEME.colors.primaryGlow}
+            strokeColor={THEME.colors.ink}
             strokeWidth={7}
             lineCap="round"
           />
@@ -258,8 +250,8 @@ export default function MapScreen() {
           <Polyline
             key={s.key}
             coordinates={s.coords}
-            strokeColor={THEME.colors.primary}
-            strokeWidth={1.5}
+            strokeColor={s.color}
+            strokeWidth={3}
             lineCap="round"
           />
         ))}
@@ -268,13 +260,6 @@ export default function MapScreen() {
         {layers.fountains ? fountainMarkers : null}
         {layers.quests ? questMarkers : null}
       </MapView>
-
-      {/* Vignette: nimmt der Karte die Kanten und traegt die Glaselemente. */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'transparent']}
-        style={styles.vignetteTop}
-        pointerEvents="none"
-      />
 
       <MapLegend
         layers={layers}
@@ -291,9 +276,9 @@ export default function MapScreen() {
             onClose={() => setSelectedQuest(null)}
           />
         ) : nearest ? (
-          <GlassSurface radius={THEME.radius.lg} contentStyle={styles.radar}>
+          <BrutSurface radius={THEME.radius.md} contentStyle={styles.radar}>
             <View style={styles.radarIcon}>
-              <Symbol name="location.north.line.fill" size={16} color={THEME.colors.primary} />
+              <Symbol name="location.north.line.fill" size={16} color={THEME.colors.ink} />
             </View>
             <View style={styles.radarText}>
               <Text style={styles.radarLabel}>NÄCHSTER ORT</Text>
@@ -302,7 +287,7 @@ export default function MapScreen() {
               </Text>
             </View>
             <Text style={styles.radarDistance}>{formatDistance(nearest.distance)}</Text>
-          </GlassSurface>
+          </BrutSurface>
         ) : null}
       </View>
     </View>
@@ -311,53 +296,69 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.colors.background },
-  vignetteTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 160 },
 
   venueDot: {
-    width: 10,
-    height: 10,
+    width: 11,
+    height: 11,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.tileRaised,
-    borderWidth: 1.5,
-    borderColor: THEME.colors.textMuted,
+    backgroundColor: THEME.colors.surface,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
   },
   fountainDot: {
     width: 7,
     height: 7,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.textMuted,
-    opacity: 0.6,
+    backgroundColor: THEME.colors.ink,
+    opacity: 0.45,
   },
   unknownDot: {
-    width: 12,
-    height: 12,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: THEME.colors.textMuted,
-    opacity: 0.75,
-  },
-  foundWrap: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  foundHalo: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
-    borderWidth: 1,
-    borderColor: THEME.colors.primaryGlow,
-  },
-  foundCore: {
     width: 14,
     height: 14,
     borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primary,
-    shadowColor: THEME.colors.primary,
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
+    backgroundColor: THEME.colors.surface,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
+  },
+  foundWrap: {
+    width: MARKER_WRAP_W,
+    height: MARKER_WRAP_H,
+    alignItems: 'center',
+  },
+  // Der harte Versatzschatten als eigene Flaeche -- eine Schatten-Prop waere
+  // auf Android weichgezeichnet.
+  foundShadow: {
+    position: 'absolute',
+    top: THEME.shadow.offsetSm,
+    left: (MARKER_WRAP_W - MARKER_SIZE) / 2 + THEME.shadow.offsetSm,
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    borderRadius: THEME.radius.sm,
+    backgroundColor: THEME.colors.ink,
+  },
+  foundCore: {
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
+  },
+  foundLabel: {
+    marginTop: THEME.spacing.xs - 1,
+    maxWidth: MARKER_WRAP_W,
+    paddingHorizontal: THEME.spacing.xs - 1,
+    paddingVertical: 2,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.surface,
+  },
+  foundLabelText: {
+    ...THEME.type.caption,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+    color: THEME.colors.ink,
   },
 
   bottom: {
@@ -375,13 +376,15 @@ const styles = StyleSheet.create({
   radarIcon: {
     width: 34,
     height: 34,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.primarySoft,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radarText: { flex: 1 },
-  radarLabel: { ...THEME.type.eyebrow, fontSize: 11, color: THEME.colors.textFaint },
+  radarLabel: { ...THEME.type.eyebrow, fontSize: 11, color: THEME.colors.textMuted },
   radarTitle: { ...THEME.type.bodyStrong, color: THEME.colors.text },
-  radarDistance: { ...THEME.type.bodyStrong, color: THEME.colors.primary },
+  radarDistance: { ...THEME.type.bodyStrong, color: THEME.colors.text },
 });
