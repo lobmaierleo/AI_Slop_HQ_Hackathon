@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "AI SLOPPY",
+    "slug": "ai-sloppy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "aisloppy",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "art.electronica.aisloppy"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": false
+        }
+      ],
+      "expo-status-bar",
+      "expo-font"
+    ]
+  }
+}
