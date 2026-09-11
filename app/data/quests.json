@@ -1,0 +1,117 @@
+{
+  "photoQuests": [
+    {
+      "id": "p1",
+      "type": "water",
+      "emoji": "🚰",
+      "badge": "Trinkbrunnen-Kühlung",
+      "title": "Hauptplatz Grüninsel (TB74)",
+      "location": "Hauptplatz, südliche Grüninsel",
+      "desc": "Finde den Brunnen und liefere frische Kühlflüssigkeit für das Modell.",
+      "teaser": "Server laufen heiß! Dieser Brunnen kühlt aktuell die Trainings-Cluster.",
+      "tokens": 800,
+      "waterLiters": 6.4,
+      "lat": 48.305384,
+      "lon": 14.286788,
+      "source": "Trinkbrunnen Linz"
+    },
+    {
+      "id": "p2",
+      "type": "tree",
+      "emoji": "🌳",
+      "badge": "CO₂-Kompensation",
+      "title": "Linde am Hauptplatz (#049)",
+      "location": "Hauptplatz-Umfeld · 27 m hoch, 19 m Krone",
+      "desc": "Kompensiere den Rechenzentren-Smog mit dem größten Baum im Viertel.",
+      "teaser": "Diese Linde frisst genau den CO₂-Ausstoß, den dein letzter Prompt erzeugt hat.",
+      "tokens": 650,
+      "waterLiters": 4.8,
+      "lat": 48.30623,
+      "lon": 14.28612,
+      "source": "Baumkataster Linz"
+    },
+    {
+      "id": "p3",
+      "type": "water",
+      "emoji": "🚰",
+      "badge": "Notkühlung",
+      "title": "Volksgarten Wasserspielplatz (TB77)",
+      "location": "Volksgarten, Wasserspielplatz",
+      "desc": "Notkühlung für überhitzte GPUs südlich der Landstraße.",
+      "teaser": "Die GPUs glühen. Der Volksgarten-Brunnen ist die letzte Reserve.",
+      "tokens": 950,
+      "waterLiters": 7.2,
+      "lat": 48.295097,
+      "lon": 14.291526,
+      "source": "Trinkbrunnen Linz"
+    },
+    {
+      "id": "p4",
+      "type": "tree",
+      "emoji": "🌳",
+      "badge": "CO₂-Kompensation",
+      "title": "Winter-Linde im Botanischen Garten (#086)",
+      "location": "Botanischer Garten · 26 m hoch, 214 cm Stammumfang",
+      "desc": "Verrechne eine Woche Inferenz gegen 26 Meter echtes Linzer Grün.",
+      "teaser": "Der Botanische Garten gleicht aus, was das Cluster in die Luft bläst.",
+      "tokens": 700,
+      "waterLiters": 5.1,
+      "lat": 48.2932,
+      "lon": 14.2706,
+      "source": "Baumkataster Linz"
+    },
+    {
+      "id": "p5",
+      "type": "water",
+      "emoji": "🚰",
+      "badge": "Donau-Nachschub",
+      "title": "Donaupark hinter dem Parkbad (TB27)",
+      "location": "Donaupark, Spielplatz hinter dem Parkbad",
+      "desc": "Zapf den Brunnen direkt neben dem Festivalgelände an.",
+      "teaser": "Nächster Brunnen zum Festival — direkt an der Trainings-Pipeline.",
+      "tokens": 880,
+      "waterLiters": 6.9,
+      "lat": 48.312446,
+      "lon": 14.294301,
+      "source": "Trinkbrunnen Linz"
+    }
+  ],
+  "triviaQuests": [
+    {
+      "id": "t1",
+      "statement": "Beim Ars Electronica Festival 2026 gibt es ein Projekt namens „Glitch & Leak: Overflowing Bodies in Public Spaces“.",
+      "isFact": true,
+      "explanation": "Steht so im offiziellen Festival-Programmdatensatz."
+    },
+    {
+      "id": "t2",
+      "statement": "Johannes Kepler programmierte 1618 im Linzer Landhaus den ersten Schachcomputer.",
+      "isFact": false,
+      "explanation": "Kompletter KI-Slop. Kepler berechnete Planetenbahnen, keine Algorithmen."
+    },
+    {
+      "id": "t3",
+      "statement": "Die Stadt Linz erfasst über 27.000 einzelne Bäume im digitalen Baumkataster.",
+      "isFact": true,
+      "explanation": "Offizielle Open-Data-Zahl: 27.004 Bäume sind exakt kartiert."
+    },
+    {
+      "id": "t4",
+      "statement": "Antithropic hat den Linzer Hauptplatz aus Sicherheitsgründen als verboten eingestuft.",
+      "isFact": false,
+      "explanation": "Satirischer Slop — aber passend zur Alignment-Paranoia."
+    },
+    {
+      "id": "t5",
+      "statement": "Im Linzer Brunnen-Datensatz sind 80 Anlagen als echte Trinkbrunnen geführt.",
+      "isFact": true,
+      "explanation": "Exakt 80 von 132 Einträgen tragen die Brunnenart „Trinkbrunnen“."
+    },
+    {
+      "id": "t6",
+      "statement": "Die Linz AG kühlt ihre Rechenzentren offiziell mit Wasser aus dem Volksgarten-Brunnen.",
+      "isFact": false,
+      "explanation": "Reiner Slop. Der Brunnen steht im Open-Data-Katalog, im Kühlkreislauf nicht."
+    }
+  ]
+}
