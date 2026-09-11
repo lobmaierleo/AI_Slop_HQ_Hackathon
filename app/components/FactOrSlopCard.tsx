@@ -17,6 +17,22 @@ type Props = {
 const SHAKE_STEPS = [0, -10, 9, -7, 5, 0];
 const SHAKE_STEP_DURATION = 45;
 
+/**
+ * Deckelt die Statement-Höhe unabhängig von der Textlänge: lange Statements
+ * (z.B. lange Projekttitel) schrumpfen bis zu diesem Skalierungsfaktor statt
+ * beliebig viele Zeilen zu belegen und die Buttons aus dem ersten Viewport
+ * zu drängen.
+ */
+const STATEMENT_MAX_LINES = 5;
+const STATEMENT_MIN_FONT_SCALE = 0.75;
+
+/**
+ * Android schrumpft adjustsFontSizeToFit ohne minimumFontScale mitunter bis
+ * zur Unlesbarkeit/Unsichtbarkeit statt sauber zu clampen (Plattform-Bug,
+ * iOS ist davon nicht betroffen). Fester Boden hält den Button-Text lesbar.
+ */
+const ACTION_MIN_FONT_SCALE = 0.8;
+
 export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props) {
   const [answered, setAnswered] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
@@ -70,7 +86,14 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
         </Text>
       </View>
 
-      <Text style={styles.statement}>{quest.statement}</Text>
+      <Text
+        style={styles.statement}
+        numberOfLines={STATEMENT_MAX_LINES}
+        adjustsFontSizeToFit
+        minimumFontScale={STATEMENT_MIN_FONT_SCALE}
+      >
+        {quest.statement}
+      </Text>
 
       {!answered ? (
         <View style={styles.actions}>
@@ -80,7 +103,12 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
             onPress={() => handle(true)}
             accessibilityLabel="Echter Fakt"
           >
-            <Text style={styles.actionText} numberOfLines={1} adjustsFontSizeToFit>
+            <Text
+              style={styles.actionText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={ACTION_MIN_FONT_SCALE}
+            >
               ✅ ECHTER FAKT
             </Text>
           </HapticButton>
@@ -90,7 +118,12 @@ export function FactOrSlopCard({ quest, onAnswer, onNext, index, total }: Props)
             onPress={() => handle(false)}
             accessibilityLabel="AI Slop"
           >
-            <Text style={styles.actionText} numberOfLines={1} adjustsFontSizeToFit>
+            <Text
+              style={styles.actionText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={ACTION_MIN_FONT_SCALE}
+            >
               🛑 AI SLOP
             </Text>
           </HapticButton>
@@ -146,11 +179,11 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     letterSpacing: -0.3,
     marginTop: THEME.spacing.sm,
-    marginBottom: THEME.spacing.lg,
+    marginBottom: THEME.spacing.md,
   },
   actions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: THEME.spacing.sm,
   },
   actionButton: {
     flex: 1,
@@ -158,7 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: THEME.radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: THEME.spacing.sm,
+    paddingHorizontal: THEME.spacing.xs,
   },
   actionText: {
     fontSize: 15,

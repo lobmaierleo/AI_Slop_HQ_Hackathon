@@ -39,6 +39,8 @@ export type LiquidTabBarProps = {
 const TAB_ICONS: Record<string, string> = {
   index: '🏠',
   quests: '🎯',
+  map: '🗺️',
+  leaderboard: '🏆',
 };
 
 const PILL_INSET = 8;
@@ -49,23 +51,24 @@ export function LiquidTabBar({ state, descriptors, navigation }: LiquidTabBarPro
   const pillX = useRef(new Animated.Value(0)).current;
 
   const activeIndex = state.index;
+  const tabCount = state.routes.length;
 
   useEffect(() => {
     if (barWidth <= 0) return;
-    const halfWidth = barWidth / 2;
+    const tabWidth = barWidth / tabCount;
     Animated.spring(pillX, {
-      toValue: activeIndex * halfWidth + PILL_INSET,
+      toValue: activeIndex * tabWidth + PILL_INSET,
       useNativeDriver: true,
       speed: 16,
       bounciness: 6,
     }).start();
-  }, [activeIndex, barWidth, pillX]);
+  }, [activeIndex, barWidth, tabCount, pillX]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     setBarWidth(event.nativeEvent.layout.width);
   };
 
-  const pillWidth = barWidth > 0 ? barWidth / 2 - PILL_INSET * 2 : 0;
+  const pillWidth = barWidth > 0 ? barWidth / tabCount - PILL_INSET * 2 : 0;
 
   return (
     <View

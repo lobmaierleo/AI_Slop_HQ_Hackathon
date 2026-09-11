@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HapticButton } from '@/components/HapticButton';
@@ -36,7 +36,10 @@ export default function OverviewScreen() {
   };
 
   if (!team) {
-    return <Redirect href="/" />;
+    // Kein Team gewählt (z. B. direkt nach resetGame()): der Guard in
+    // app/_layout.tsx entfernt diesen Screen im selben Zug aus dem Stack.
+    // Hier nur sicherstellen, dass in der Zwischenzeit nichts abstürzt.
+    return null;
   }
 
   const goToSpot = () => {

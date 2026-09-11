@@ -177,7 +177,11 @@ export default function QuestsScreen() {
           ))}
         </ScrollView>
       ) : (
-        <View style={styles.triviaBody}>
+        <ScrollView
+          style={styles.triviaBody}
+          contentContainerStyle={styles.triviaContent}
+          showsVerticalScrollIndicator={false}
+        >
           {isTriviaDone ? (
             <View style={styles.doneCard}>
               <Text style={styles.doneTitle}>🎉 Alle Statements gefüttert.</Text>
@@ -206,7 +210,7 @@ export default function QuestsScreen() {
               />
             </Animated.View>
           )}
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -272,6 +276,9 @@ const styles = StyleSheet.create({
   triviaBody: {
     flex: 1,
     marginTop: THEME.spacing.lg,
+  },
+  triviaContent: {
+    flexGrow: 1,
     paddingBottom: THEME.tabBarClearance,
   },
   doneCard: {
