@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FactOrSlopCard } from '@/components/FactOrSlopCard';
@@ -17,8 +16,8 @@ import { THEME } from '@/theme/colors';
 const SEGMENT_CONTAINER_PADDING = 4;
 
 const SEGMENTS: { id: Segment; label: string }[] = [
-  { id: 'photo', label: '📸 Foto-Missionen' },
-  { id: 'trivia', label: '❓ Fakt oder Slop' },
+  { id: 'photo', label: 'Foto-Missionen' },
+  { id: 'trivia', label: 'Fakt oder Slop' },
 ];
 
 const SLIDE_OUT_DURATION = 160;
@@ -34,9 +33,6 @@ export default function QuestsScreen() {
   } = useGameStore();
 
   const [segment, setSegment] = useState<Segment>('photo');
-  const [innerWidth, setInnerWidth] = useState(0);
-  const thumbX = useRef(new Animated.Value(0)).current;
-  const thumbAnim = useRef<Animated.CompositeAnimation | null>(null);
 
   const [triviaIndex, setTriviaIndex] = useState(0);
   const slideX = useRef(new Animated.Value(0)).current;
@@ -51,28 +47,10 @@ export default function QuestsScreen() {
   }, [pendingSegment, consumeSegment]);
 
   useEffect(() => {
-    const thumbWidth = innerWidth / 2;
-    const toValue = segment === 'photo' ? 0 : thumbWidth;
-    thumbAnim.current?.stop();
-    thumbAnim.current = Animated.spring(thumbX, {
-      toValue,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 6,
-    });
-    thumbAnim.current.start();
-  }, [segment, innerWidth, thumbX]);
-
-  useEffect(() => {
     return () => {
-      thumbAnim.current?.stop();
       slideAnim.current?.stop();
     };
   }, []);
-
-  const handleContainerLayout = (event: LayoutChangeEvent) => {
-    setInnerWidth(event.nativeEvent.layout.width - SEGMENT_CONTAINER_PADDING * 2);
-  };
 
   const isTriviaDone = triviaIndex >= TRIVIA_QUESTS.length;
 
@@ -119,8 +97,6 @@ export default function QuestsScreen() {
     setTriviaIndex(0);
   };
 
-  const thumbWidth = innerWidth / 2;
-
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.header}>
@@ -128,37 +104,31 @@ export default function QuestsScreen() {
         <Text style={styles.subtitle}>Sammle Linzer Realdaten für das Modell.</Text>
       </View>
 
-      <View style={styles.segmentContainer} onLayout={handleContainerLayout}>
-        {innerWidth > 0 ? (
-          <Animated.View
-            style={[
-              styles.segmentThumb,
-              {
-                width: thumbWidth,
-                transform: [{ translateX: thumbX }],
-              },
-            ]}
-          />
-        ) : null}
-        {SEGMENTS.map((entry) => (
-          <HapticButton
-            key={entry.id}
-            haptic="selection"
-            scaleTo={0.98}
-            style={styles.segmentButton}
-            onPress={() => setSegment(entry.id)}
-            accessibilityLabel={entry.label}
-          >
-            <Text
-              style={[
-                styles.segmentLabel,
-                { color: segment === entry.id ? THEME.colors.primary : THEME.colors.textMuted },
-              ]}
+      <View style={styles.segmentContainer}>
+        {SEGMENTS.map((entry) => {
+          const isActive = segment === entry.id;
+          return (
+            <HapticButton
+              key={entry.id}
+              haptic="selection"
+              scaleTo={0.98}
+              style={[styles.segmentButton, isActive && styles.segmentButtonActive]}
+              onPress={() => setSegment(entry.id)}
+              accessibilityLabel={entry.label}
             >
-              {entry.label}
-            </Text>
-          </HapticButton>
-        ))}
+              <Text
+                style={[
+                  styles.segmentLabel,
+                  { color: isActive ? THEME.colors.primary : THEME.colors.textMuted },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {entry.label}
+              </Text>
+            </HapticButton>
+          );
+        })}
       </View>
 
       {segment === 'photo' ? (
@@ -239,28 +209,25 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.track,
     padding: SEGMENT_CONTAINER_PADDING,
     marginTop: THEME.spacing.lg,
-    position: 'relative',
   },
-  segmentThumb: {
-    position: 'absolute',
-    top: SEGMENT_CONTAINER_PADDING,
-    left: SEGMENT_CONTAINER_PADDING,
-    height: 40,
+  segmentButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: THEME.spacing.xs,
     borderRadius: THEME.radius.pill,
+  },
+  segmentButtonActive: {
     backgroundColor: THEME.colors.card,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
-  segmentButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   segmentLabel: {
     fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center',
   },
   body: {
     flex: 1,

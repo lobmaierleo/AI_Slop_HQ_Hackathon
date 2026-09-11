@@ -32,11 +32,20 @@ export default function OverviewScreen() {
   }, [agiProgress, anim]);
 
   const handleTrackLayout = (event: LayoutChangeEvent) => {
-    setTrackWidth(event.nativeEvent.layout.width);
+    const w = event.nativeEvent.layout.width;
+    if (w > 0 && Math.abs(w - trackWidth) > 1) {
+      setTrackWidth(w);
+    }
   };
 
+  useEffect(() => {
+    if (!team) {
+      router.replace('/');
+    }
+  }, [team, router]);
+
   if (!team) {
-    return <Redirect href="/" />;
+    return null;
   }
 
   const goToSpot = () => {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,9 +11,11 @@ export default function Index() {
   const router = useRouter();
   const { team, selectTeam } = useGameStore();
 
-  if (team) {
-    return <Redirect href="/(tabs)" />;
-  }
+  useEffect(() => {
+    if (team) {
+      router.replace('/(tabs)');
+    }
+  }, [team, router]);
 
   const handleSelect = (id: Team['id']) => {
     selectTeam(id);
