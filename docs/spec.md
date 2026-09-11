@@ -1,163 +1,138 @@
-# SPEC: AI SLOPPY — The Great Linz Compute & Cooling Crisis
+# SPEC: AI SLOPPY — Linz Explorer & AGI Quest
 
-> **Typ:** Demo-Spezifikation für den AI Hackathon @ Ars Electronica Festival 2026  
-> **Ziel:** Voll funktionsfähige, bühnenreife Demo-Anwendung für den 2-Minuten-Pitch & Community-Voting.  
-> **Motto:** *Future Begins / NEGOTIATING HUMANITY*  
-> **Design-Vorgabe:** Verbindliche Einhaltung von `DESIGN.md` (Apple-Ästhetik, Action Blue, keine Drop Shadows auf Chrome, randlose Wechseltiles, Typografie 17px/1.47, Gewichte 300/400/600/700).
-
----
-
-## 1. Executive Summary & Narrativ
-
-Während die Tech-Konzerne um „AGI“ rennen, verbrauchen Rechenzentren astronomische Mengen Grundwasser, während das Internet im selbst erzeugten Müll (*Model Collapse*) versinkt.
-
-**AI Sloppy** ist eine bitterböse, interaktive Satire auf das globale KI-Wettrüsten. Der Spieler schließt sich einem von vier Big-Tech-Labs an und versucht, sein Modell als Erstes zur „AGI“ zu trainieren. Nach dem Motto **„Quantity over Quality“** muss das Modell mit möglichst viel synthetischem Unsinn („Slop“) gefüttert werden. Jede generierte Trainingseinheit entzieht jedoch den realen **Linzer Trinkbrunnen** live das Kühlwasser, während der Kontext kippt und historische Linzer Persönlichkeiten mit Festival-Kunstprojekten zu absurden Halluzinationen verschmelzen.
+> **Typ:** Finale Demo-Spezifikation für den AI Hackathon @ Ars Electronica Festival 2026  
+> **Mission:** Linz interaktiv und spielerisch erlebbar machen – verpackt in eine charmante KI-Trainingsmission.  
+> **Visual Direction:** **Orange Bright & Verspielt**. Keine sterile Corporate-AI-App. Apple Liquid Glass Navigation, organische abgerundete Formen (`rounded-3xl`), satte Haptik, klare Typografie und **radikal wenig Text**.
 
 ---
 
-## 2. Die 4 spielbaren Fraktionen (Labs)
+## 1. Das Kernprinzip (In 3 Sätzen)
 
-Jedes Team verkörpert eine reale Facette moderner KI-Pathologien:
-
-| Lab | Slogan | UI-Tonalität | Satirischer Malus / Mechanik |
-|---|---|---|---|
-| **ClosedAI** | *„Openness is unsafe. Trust our closed box.“* | Corporate, maximal arrogant | Verlangt gelegentlich „Enterprise Subscription“ für einfache Klicks |
-| **Antithropic** | *„100% harmless. We refuse to answer, but consume water anyway.“* | Über-vorsichtig, Moralisierend | **Alignment Tax:** Sperrt sich zeitweise selbst („Aus Sicherheitsgründen pausiert“) |
-| **Grek** | *„Maximum Truth, zero filter, pure unhinged slop.“* | Chaotisch, unzensiert | Höchste Halluzinationsrate, beschleunigter Model Collapse |
-| **ShallowSeek** | *„100x cheaper because we just distill ClosedAI.“* | Billig-Klon, Rechen-Effizienz | Kopiert die Slop-Daten der anderen Teams mit 50% Rabatt |
+1. **Die Story:** Die vier großen KI-Labs (*ClosedAI*, *Antithropic*, *Grek*, *ShallowSeek*) kämpfen um die Vorherrschaft („AGI“). Um dein Modell zu trainieren, musst du echte Trainingsdaten direkt aus Linz und dem Ars Electronica Festival beschaffen.
+2. **Die Mechanik:** Du wählst dein Team und erfüllst zwei simple Quest-Typen: **Foto-Missionen** an echten Linzer Orten (Trinkbrunnen, Stadtbäume) und **„Fakt oder Slop?“**-Quests über Festival-Projekte und Linzer Mythen.
+3. **Der Live-Twist:** Jede abgeschlossene Quest bringt dein Team im AGI-Rennen nach vorne – verbraucht aber virtuell echtes Linzer Trinkwasser zur Serverkühlung!
 
 ---
 
-## 3. Struktureller Daten-Join (Festival ↔ Linz Open Data)
+## 2. Design & Visual System (Orange Bright & Liquid Glass)
 
-Gemäß Hackathon-Regel 2 müssen die Datensätze kausal und strukturell verknüpft sein:
-
-### A. Festival-Projekte & Locations ↔ Linzer Trinkbrunnen
-* **Dateien:** `data/festival/ars-festival-2026.json` (Projekte & 156 Locations) + `data/linz/trinkbrunnen/Trinkbrunnen.csv` (132 Brunnen mit Geo-Koordinaten).
-* **Der Join:** Jede Festival-Location wird per Haversine-Distanz dem nächstgelegenen Linzer Trinkbrunnen zugewiesen.
-* **Kausalität:** 
-  - Jedes Training/Slop-Generieren an einem Festivalort saugt den zugeordneten Trinkbrunnen leer.
-  - Formel: $1\text{ Slop-Token} = 0.008\text{ Liter Kühlwasser}$.
-  - Ein Brunnen hat einen Puffer (z. B. $2.000\text{ Liter}$). Ist er bei $0\text{ l}$, gilt er als **„TROCKENGELEGT / KRITISCH“** und der lokale Festival-Knoten überhitzt.
-* **Sekundär-Kompensation:** `data/linz/baumkataster/Baumkataster.csv` (27.004 Bäume).
-  - Berechnung: „Um die Abwärme zu kompensieren, müssen $X$ Platanen am Linzer Hauptplatz gefällt werden.“
-
-### B. Linzer Straßennamen ↔ Festival-Projektbeschreibungen
-* **Dateien:** `data/linz/strassennamen/Strassennamen-aktuell.csv` (Persönlichkeiten: Kepler, Mozart, Stifter etc.) + `data/festival/ars-festival-2026.json` (`Description EN/DE`, `Artists`).
-* **Der Join:** Synthetische Halluzinations-Engine.
-  - Das System erzeugt Trainings-Quests („Synthetic Data Poisoning“), indem reale Biografien Linzer Persönlichkeiten mit Ars-Electronica-Themen (Bio-Art, Robotics, Post-Humanism) hybridisiert werden.
-  - Beispiel: *„Johannes Kepler erfand 1618 nicht die Planetengesetze, sondern eine Post-Gender-Bio-Kybernetik-Performance im Deep Space 8K.“*
+* **Design-Fokus:** Verspielt, einladend, hochenergetisch und extrem aufgeräumt. Niemals Textwüsten – Information wird visuell über Cards, Badges und Animationen transportiert.
+* **Farbpalette:**
+  * **Signature Accent:** `Bright Orange` (`#FF5C00` / `#FF6B00`) – warm, leuchtend, verspielt.
+  * **Secondary Accents:** `Mint Cyan` (`#00D2A0` für Fakten/Erfolg), `Punch Coral` (`#FF3B30` für Slop/Fehler), `Electric Purple` (`#8A2BE2` für AGI-Status).
+  * **Hintergründe:** Warmer Canvas (`#F8F8FA`) im Light Mode oder sattes Deep Charcoal (`#121214`) mit orangefarbenen Glows.
+* **Apple Liquid Glass Navigation:**
+  * Schwebende, pillenförmige Tab-Bar am unteren Bildschirmrand.
+  * `expo-blur` (Translucent Frosted Glass mit `tint="systemMaterial"` oder `tint="light"`), feiner Rand (`rgba(255, 255, 255, 0.3)`), weiche Schatten und leuchtender Orange-Indikator für den aktiven Tab.
+* **Haptik & Micro-Interactions:**
+  * `expo-haptics` bei jedem Tab-Wechsel (`selectionAsync`), jedem Button-Druck (`impactAsync(Medium)`) und bei Quest-Erfolgen (`notificationAsync(Success)`).
+  * Bouncy Spring Physics: Karten skalieren beim Berühren sanft ein (`scale: 0.96`).
 
 ---
 
-## 4. Technische Architektur
+## 3. Screen 1: Visuelles Onboarding (Team-Wahl)
 
-### A. Zero-Runtime-LLM (Stabilität vor Ort)
-* **Keine externen API-Calls während der Demo.**
-* Ein Vorberechnungs-Script (`scripts/generate_slop_data.py`) analysiert die Rohdaten und generiert eine statische JSON-Fixture:
-  - `data/derived/slop_fixtures.json`: Vorberechnete Quests, Halluzinations-Paare, Brunnen-Zuordnungen und Team-Reaktionen.
-  - 100% offline-fähig, immun gegen WLAN-Ausfälle in der Grand Garage.
-
-### B. Frontend-Stack & Native Apple UI (Expo)
-* **Framework:** React Native / Expo (mit React Native Web Unterstützung).
-* **DESIGN IS KING:** Die visuelle und haptische Qualität der App ist für den Hackathon-Erfolg und das Community Voting entscheidend. Die App muss sich anfühlen wie eine erstklassige native Apple First-Party App (iOS Health / Fitness / Settings Ästhetik).
-* **Verbindliche Apple UI Komponenten:**
-  1. **Large Title Navigation:** Kollabierende iOS Large Titles (34px bold) mit sanftem Scroll-Verhalten.
-  2. **Segmented Controls (`UISegmentedControl` Style):** Schwebende Kapsel-Tabs mit gleitendem Hintergrund für Ansichten (z. B. *Cockpit*, *Quests*, *Cooling Grid*).
-  3. **Inset Grouped Lists:** iOS-typische gruppierte Listen mit abgerundeten Ecken (`rounded-2xl`), Kacheln und feinen Hairline-Trennlinien (`hairline: #e0e0e0` / `divider-soft`).
-  4. **SF Symbols / Apple Icons:** Präzise, einheitliche Linienstärken passend zur Typografie.
-  5. **iOS Modal Bottom Sheets (`pageSheet`):** Quests, Brunnen-Details und Warnungen gleiten als native Sheets mit Grabber-Leiste von unten hinein.
-  6. **Haptics (`expo-haptics`):** Spürbares taktiles Feedback beim Drücken von Buttons (`impactAsync`), Slop-Pumpen und haptische Warnung (`notificationAsync(Warning)`), sobald ein Linzer Brunnen austrocknet.
-  7. **Frosted Glass & Blur (`expo-blur`):** Echte iOS Blur-Effekte für fixierte Navigation- und Tab-Bars.
-  8. **Feder-Physik (Spring Animations):** Flüssige Übergänge mit Apple-typischem Bounce/Spring statt linearer Web-Animationen.
+* **Wann:** Nur beim allerersten Start der App (gespeichert in `AsyncStorage`).
+* **Text:** Maximal 2 Sätze:  
+  *„Trainiere die nächste Superintelligenz mit realen Daten aus Linz. Wähle dein Lab und starte die Jagd.“*
+* **UI:** 4 große, farbenfrohe Kacheln mit verspieltem Logo & Kurz-Motto:
+  1. 🟧 **ClosedAI** — *„Openness ist überbewertet.“*
+  2. 🟪 **Antithropic** — *„100% sicher. Zu 0% hilfreich.“*
+  3. ⚡ **Grek** — *„Volles Chaos, null Filter.“*
+  4. 🌀 **ShallowSeek** — *„Gleiche Power, halber Preis.“*
+* **Interaktion:** Antippen wählt das Team mit spürbarem Haptic-Feedback und springt sofort in die App.
 
 ---
 
-## 5. Screen & Feature Spezifikation
+## 4. Die 2 Kern-Tabs (Strikte 2-Tab-Navigation)
 
-Die App gliedert sich in 3 Kern-Views:
+Es gibt **nur zwei Tabs** – keine versteckten Menüs, kein Labyrinth!
 
 ```
-+-------------------------------------------------------------+
-|                        APP FLOW                             |
-|                                                             |
-|  [ 1. Team Onboarding ]  -->  [ 2. Main Slop Cockpit ]      |
-|  (Wähle dein AI Lab)          - Live Telemetrie             |
-|                               - Trinkbrunnen-Status         |
-|                               - Quest Hub (Slop füttern)    |
-|                                         |                   |
-|                                         v                   |
-|                               [ 3. Global Race View ]       |
-|                               - AGI Race Leaderboard        |
-|                               - Linzer Brunnen-Map / Liste  |
-|                               - Demo Presentation Mode      |
-+-------------------------------------------------------------+
++-------------------------------------------------------+
+|                       APP FLOW                        |
+|                                                       |
+|    [ Onboarding: Wähle 1 von 4 Teams ] (einmalig)    |
+|                          |                            |
+|         +----------------+----------------+           |
+|         |                                 |           |
+|         v                                 v           |
+|   [ TAB 1: ÜBERSICHT ]            [ TAB 2: QUESTS ]   |
+|   - Team-Status (AGI-Rennen)      - 📸 Foto-Mission   |
+|   - Dein Wasserverbrauch          - ❓ Fakt oder Slop |
+|   - Linz Hotspot Highlight                            |
+|                                                       |
+|   =================================================   |
+|   [ 🏠 Übersicht ]         [ 🎯 Quests ] (Liquid Bar) |
++-------------------------------------------------------+
 ```
 
-### Screen 1: Lab Onboarding
-* **Inhalt:** Auswahl des AI-Labs (`ClosedAI`, `Antithropic`, `Grek`, `ShallowSeek`).
-* **UI:** 4 randlose Kacheln (`surface-tile-1` / `canvas-parchment`), Lab-Slogan, Akzent-Badge.
-* **Aktion:** Antippen wählt das Team und leitet sofort ins Cockpit weiter.
+---
 
-### Screen 2: Main Slop Cockpit (Die Trainings-Schleife)
-1. **Live-Telemetrie (Hero-Bereich):**
-   * **AGI Progress:** Prozentbalken (z. B. 84.3% bis zur Weltherrschaft).
-   * **Slop Tokens:** Zähler (z. B. `14.2 M Tokens gefüttert`).
-   * **Linzer Wasserverbrauch:** Große Metrik (`2.418 Liter verdampft`).
-   * **Aktiver Brunnen:** Name des lokalen Linzer Brunnens (z. B. *„Trinkbrunnen Hauptplatz #104 – Füllstand: 12%“*).
-2. **Quest Hub („Füttere das Modell“):**
-   * **Mini-Game A: „Slop or Real Art?“**
-     Zwei Statements werden angezeigt (Echtes Festival-Projekt vs. halluzinierter Linzer Geschichts-Slop). Der User wählt den Slop. 
-     *Belohnung:* „+250k Tokens Slop! Datenqualität sinkt um 3.2% – Perfekt!“
-   * **Mini-Game B: „Compute Overdrive / Slop Pump“**
-     Ein Button zum schnellen Hämmern (*„Compute boosten“*). Jeder Tap zieht Wasser ab, erzeugt sinnlosen synthetischen Code/Text und treibt den Zähler hoch.
-   * **Mini-Game C: „Multimodal Scanner“**
-     Kamera-Attrappe oder Bildauswahl: Erkennt jedes Objekt als *„Kritische Trainingsdaten für AGI“*.
-3. **Kontext-Kollaps / Halluzinationseffekte:**
-   * Ab 70% Slop-Level beginnt das Interface satirisch zu zerfallen:
-     - Texte vertauschen Wörter mit Linzer Straßennamen.
-     - Antithropic blendet Popups ein: *„Achtung: Dieser Gedanke wurde aus Sicherheitsgründen zensiert.“*
-     - Wasserzähler springt auf Rot: *„Brunnen Pfarrplatz trocken. Kühlung schlägt fehl!“*
+### Tab 1: Übersicht (Dashboard)
 
-### Screen 3: Global Leaderboard & Linz Cooling Grid (Bühnen-View)
-* **Team-Ranking:** Live-Fortschritt der 4 Labs Richtung 100% AGI.
-* **Brunnen-Friedhof:** Liste der bereits „ausgetrockneten“ Linzer Trinkbrunnen, geordnet nach zerstörter Wassermenge.
-* **Baum-Äquivalent:** *„Bereits vernichtete CO2-Kompensation: 342 Linzer Stadtbäume.“*
-* **Demo-Controls (Unten dezent oder versteckt):**
-  - Toggle: *Auto-Simulate Live Traffic* (Zahlen steigen kontinuierlich an).
-  - Button: *Trigger Model Collapse* (Löst sofort visuelle Glitches und Brunnen-Alarm aus).
-  - Button: *Reset Race*.
+1. **Team Hero Card (Oben):**
+   * Große, leuchtende Kachel in Team-Optik.
+   * **Live AGI-Fortschritt:** Animierter Ring oder Fortschrittsbalken (z. B. *„ClosedAI: 74% zu AGI“*).
+   * **Team-Rang:** *„Platz 2 im Linzer AI Race“*.
+2. **Dein persönlicher Impact (Zwei verspielte KPI-Kacheln nebeneinander):**
+   * 💧 **Wasserverbrauch:** *„48,2 Liter Linzer Trinkwasser zur Serverkühlung verdampft.“*
+   * ⚡ **Slop Ingested:** *„14.200 kTokens Trainingsdaten generiert.“*
+3. **Linz Hotspot des Tages (Unten):**
+   * Eine Karte, die einen echten Linzer Ort vorstellt (aus `data/linz/trinkbrunnen` oder `data/linz/baumkataster`):
+   * *„Trinkbrunnen am Pfarrplatz — Bereit für die nächste Kühl-Mission!“*
+   * Button: *„Direkt dorthin & Quest starten →“* (wechselt zu Tab 2).
 
 ---
 
-## 6. Daten-Pipeline Script (`scripts/generate_slop_data.py`)
+### Tab 2: Quests (Aufgaben-Hub)
 
-Das Skript muss deterministisch und offline ausführbar sein:
-1. Lädt `data/festival/ars-festival-2026.json`.
-2. Lädt `data/linz/trinkbrunnen/Trinkbrunnen.csv`.
-3. Lädt `data/linz/strassennamen/Strassennamen-aktuell.csv`.
-4. Berechnet Distanzmatrix: `Festival-Location` $\rightarrow$ nächster `Trinkbrunnen`.
-5. Erzeugt 40–50 witzige, vorberechnete Quests (Mischung aus realen Festivaltexten und absurden Straßennamen-Halluzinationen).
-6. Schreibt `data/derived/slop_fixtures.json`.
+Hier gibt es **genau 2 Quest-Typen**, die Linz interaktiv erlebbar machen:
+
+#### Quest-Typ A: 📸 Foto-Missionen (Linz physisch erkunden)
+* **Ziel:** Den Linzer Stadtraum entdecken und dem Modell visuelle „Trainingsdaten“ liefern.
+* **Datenquelle:** `data/linz/trinkbrunnen/Trinkbrunnen.csv` & `data/linz/baumkataster/Baumkataster.csv`.
+* **Beispiel-Aufgaben:**
+  * 🚰 *„Finde den historischen Trinkbrunnen am Hauptplatz (#104) und kühle unsere Server!“*
+  * 🌳 *„Finde eine Platane im Linzer Donaupark zur CO2-Kompensation des Modells!“*
+  * 📡 *„Finde den Free-WLAN-Hotspot an der Donaupromenade für den Datacenter-Uplink!“*
+* **Interaktion:**
+  * Button *„Foto aufnehmen / scannen“* (Kamera oder Test-Fotoauswahl).
+  * Spielerische Instant-Validierung: Lustiges Overlay scannt das Bild mit Laser-Animation $\rightarrow$ *„Perfekt! 100% zertifizierte Linzer Kühlflüssigkeit erkannt. +1.500 Tokens für dein Team!“*
+
+#### Quest-Typ B: ❓ Fakt oder Slop? (Trivia & Fake-Detection)
+* **Ziel:** Spielerisch lernen, wie sich echter Linzer Kultur-Content von halluziniertem KI-Slop unterscheidet.
+* **Datenquelle:** `data/festival/ars-festival-2026.json` + `data/linz/strassennamen/Strassennamen-aktuell.csv`.
+* **Spielablauf:**
+  * Eine visuell herausstechende Karte zeigt ein kurzes Statement.
+  * Der Spieler hat zwei große Buttons: `[ ✅ FAKT ]` oder `[ 🛑 AI SLOP ]`.
+* **Beispiele (aus echten Daten generiert):**
+  * *„Beim Festival 2026 gibt es ein Projekt namens 'Glitch & Leak: Overflowing Bodies in Public Space'.“*  
+    $\rightarrow$ **FAKT** (Echtes Festivalprojekt!).
+  * *„Johannes Kepler erfand 1618 im Linzer Landhaus das erste neuronale Netzwerk zur Weinlese.“*  
+    $\rightarrow$ **SLOP** (Historischer Straßenname mit absurder KI-Halluzination).
+  * *„Im Linzer Baumkataster sind über 27.000 einzelne Stadtbäume digital erfasst.“*  
+    $\rightarrow$ **FAKT** (Reale Open-Data-Zahl).
+* **Feedback:** Sofortiges haptisches Feedback, Konfetti bei Richtig, lustiger Glitch bei Falsch.
 
 ---
 
-## 7. Design & UI Guidelines Checkliste (aus `DESIGN.md` & Apple HIG)
+## 5. Daten-Pipeline Script (`scripts/generate_slop_data.py`)
 
-- [ ] **Design ist Prio 1:** Die UI muss wie eine native Apple First-Party iOS App wirken (kein generischer Web-Look, kein AI-Standard-Template).
-- [ ] **Akzentfarbe:** Einzig und allein Action Blue (`#0066cc` / `#0071E3` / Tailwind `primary`). Keine bunten Teamfarben für UI-Elemente; Teams unterscheiden sich durch Typografie, Badges und monochrome Graustufen (`POINT_TONE`).
-- [ ] **Apple UI Komponenten:** Inset Grouped Lists (`style: .insetGrouped`), Segmented Controls, Large Titles, Frosted Blur Navigation-Bar (`expo-blur`), native Modal Sheets (`pageSheet`).
-- [ ] **Flächen & Kontraste:** Randlose Kacheln im Wechsel (`bg-canvas` $\rightarrow$ `bg-surface-tile-1` $\rightarrow$ `bg-canvas-parchment`).
-- [ ] **Keine Schatten auf Chrome:** Absolut keine Drop-Shadows auf Cards, Buttons oder Badges. Tiefe entsteht ausschließlich durch Hell/Dunkel-Flächenwechsel.
-- [ ] **Typografie:** SF Pro Text / SF Pro Display. Fließtext exakt 17px / Zeilenhöhe 1.47. Überschriften mit leicht negativer Laufweite (`tracking-tight`).
-- [ ] **Kein Font-Weight 500:** Streng verboten. Ausschließlich 300, 400, 600, 700 verwenden.
-- [ ] **Haptik & Micro-Interactions:** `expo-haptics` bei jedem relevanten Tap; `transform: scale(0.95)` Button-Druckzustand. Fluid Spring Physics.
+Ein einfaches Python-Skript erzeugt alle Quests statisch im Vorfeld:
+1. Lädt `data/linz/trinkbrunnen/Trinkbrunnen.csv` $\rightarrow$ generiert 15 Trinkbrunnen-Fotoquests mit echten Adressen/Namen.
+2. Lädt `data/linz/baumkataster/Baumkataster.csv` $\rightarrow$ generiert 15 Baum-Fotoquests (Gattung, Ort).
+3. Lädt `data/festival/ars-festival-2026.json` & `data/linz/strassennamen/Strassennamen-aktuell.csv` $\rightarrow$ generiert 25 knackige „Fakt oder Slop“-Fragen.
+4. Speichert alles in `data/derived/slop_fixtures.json` (100% offline, null API-Kosten, null Latenz!).
 
 ---
 
-## 8. Abnahmekriterien für die fertige Demo
+## 6. Do's & Don'ts für die Umsetzung
 
-1. **Startbereit in 5 Sekunden:** App lädt sofort im Simulator oder Browser, zeigt das Lab-Onboarding.
-2. **Klarer 60-Sekunden-Fun:** Man versteht in 15 Sekunden das Prinzip (Team wählen $\rightarrow$ Slop pumpen $\rightarrow$ Linzer Trinkbrunnen leersaugen $\rightarrow$ Leaderboard steigt).
-3. **Daten-Verschränkung klar sichtbar:** In jedem Screen ist der Bezug zwischen echtem Festivalprojekt und echtem Linzer Brunnen / Straßennamen präsent.
-4. **Bühnentauglicher Demo-Modus:** Durch Auto-Simulation steigen die Zahlen während des Pitches dynamisch, ohne manuelle Klick-Hektik.
+| ✅ DO | ❌ DON'T |
+|---|---|
+| **Orange Bright Accent** (`#FF5C00`) & Liquid Glass | Keine graue, traurige Terminal- oder Standard-AI-Optik |
+| **Max. 1-2 Sätze pro Screen/Card** | Keine Textwüsten oder langen Kuratorentexte |
+| **Klare 2-Tab-Navigation** (Übersicht / Quests) | Keine verschachtelten Sub-Menüs oder Burger-Navis |
+| **Fokus auf echte Linzer Orte** (Brunnen, Bäume) | Keine rein abstrakten oder erfundenen Orte |
+| **Haptics (`expo-haptics`) bei jedem Klick** | Keine lautlosen, toten Buttons |
