@@ -5,3 +5,7 @@ web-build/
 *.log
 .DS_Store
 expo-env.d.ts
+next-env.d.ts
+*.tsbuildinfo
+ios/
+android/

@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "art.electronica.aisloppy"
+      "bundleIdentifier": "art.electronica.aisloppy",
+      "appleTeamId": "495SM77253"
     },
     "web": {
       "bundler": "metro",
