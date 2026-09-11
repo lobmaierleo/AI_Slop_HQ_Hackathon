@@ -37,3 +37,31 @@ Korrekturen und Muster, die sich wiederholen sollen. Nach jeder Korrektur ergän
 - **Headless Chrome für Screenshots braucht ein eigenes `--user-data-dir`**, sonst kollidiert es
   mit der laufenden Chrome-Instanz und hängt. Und ohne WebGL rendert MapLibre dort ohnehin nicht —
   für Kartenprüfungen führt kein Weg am echten Browser vorbei.
+
+## 2026-09-11 — Leerer Screen nach „Neu starten" (expo-router Routen-Kollision)
+
+**Symptom:** Nach Reset blieb nur die Tab-Bar sichtbar, der Inhalt war leer.
+`router.replace('/')` bewirkte nichts.
+
+**Ursache:** `app/index.tsx` und `app/(tabs)/index.tsx` lagen beide auf dem Pfad `/` —
+eine Gruppe `(tabs)` fügt kein Pfadsegment hinzu. Der Beweis aus der laufenden App:
+
+```
+store.linking.getStateFromPath('/')
+→ {"routes":[{"name":"__root","state":{"routes":[
+   {"name":"(tabs)","state":{"routes":[{"name":"index","path":"/"}]}}]}}]}
+```
+
+`/` löste also auf den Tab-Screen auf, nicht auf die Team-Auswahl. Der Redirect
+ersetzte den Screen durch sich selbst; ohne Team rendert er `null` → leere Fläche.
+Die Team-Auswahl war beim Kaltstart nur deshalb sichtbar, weil der Root-Stack seine
+Initial-Route **über den Namen** wählt, nicht über den Pfad.
+
+**Regel:** In expo-router darf es pro Pfad genau eine Datei geben. Eine Gruppe mit
+`index.tsx` neben einem `app/index.tsx` ist immer eine Kollision — der Tab-Start-Screen
+bekommt einen eigenen Namen (`overview.tsx`).
+
+**Methodik, die funktioniert hat:** Statt zu raten, im Simulator instrumentieren und
+`xcrun simctl io booted screenshot` lesen. Reload ohne Tastatur:
+`curl http://localhost:8081/reload`, Navigation testen mit
+`xcrun simctl openurl booted "aisloppy:///overview"`.

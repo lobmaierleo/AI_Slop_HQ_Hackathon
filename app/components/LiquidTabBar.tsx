@@ -37,7 +37,7 @@ export type LiquidTabBarProps = {
 };
 
 const TAB_ICONS: Record<string, string> = {
-  index: '🏠',
+  overview: '🏠',
   quests: '🎯',
 };
 

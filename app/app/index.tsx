@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HapticButton } from '@/components/HapticButton';
@@ -13,13 +13,13 @@ export default function Index() {
 
   useEffect(() => {
     if (team) {
-      router.replace('/(tabs)');
+      router.replace('/overview');
     }
   }, [team, router]);
 
   const handleSelect = (id: Team['id']) => {
     selectTeam(id);
-    router.replace('/(tabs)');
+    router.replace('/overview');
   };
 
   return (

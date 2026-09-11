@@ -38,19 +38,14 @@ export default function OverviewScreen() {
     }
   };
 
-  useEffect(() => {
-    if (!team) {
-      router.replace('/');
-    }
-  }, [team, router]);
-
+  // Ohne Team gibt es nichts anzuzeigen — zurück zur Team-Auswahl unter `/`.
   if (!team) {
-    return null;
+    return <Redirect href="/" />;
   }
 
   const goToSpot = () => {
     requestSegment('photo');
-    router.push('/(tabs)/quests');
+    router.push('/quests');
   };
 
   return (
