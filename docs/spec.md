@@ -3,7 +3,7 @@
 > **Status:** VERBINDLICHE IMPLEMENTIERUNGS-SPEZIFIKATION FÜR CLAUDE CODE  
 > **Ziel:** Eine ultra-cleane, spielerische, visuell atemberaubende Mobile-App (Expo / React Native).  
 > **Mission:** Linz spielerisch erlebbar machen – verpackt in eine charmante KI-Trainingsmission.  
-> **Leitmotiv:** **Orange Bright, Apple Liquid Glass, radikal wenig Text, 100% intuitive 2-Tab-Navigation.**
+> **Leitmotiv:** **Orange Bright, Apple Liquid Glass, radikal wenig Text, flache Tab-Navigation ohne Sub-Pages.**
 
 ---
 
@@ -18,7 +18,8 @@
 ✅ **DAS MUSS GEBAUT WERDEN:**
 - **Bunt, verspielt, vibrant:** Knalliges Orange (`#FF5C00`), weiche Kacheln (`borderRadius: 28`), große Touch-Targets.
 - **Apple Liquid Glass Navigation:** Schwebende, pillenförmige Frosted-Glass-Tab-Bar unten mit `expo-blur`.
-- **Exakt 2 Tabs:** Nur `[ Übersicht ]` und `[ Quests ]`.
+- **Vier Tabs, flach:** `[ Übersicht ]`, `[ Quests ]`, `[ Karte ]`, `[ Ranking ]`. Keine Sub-Pages darunter.
+  (Ursprünglich waren zwei Tabs vorgesehen; Karte und Ranking kamen am 11.09.2026 auf Wunsch dazu.)
 - **Echte Linzer Open Data:** Trinkbrunnen & Bäume sind das Herzstück der Quests.
 - **Instant Haptic Fun:** Jeder Klick fühlt sich durch `expo-haptics` und sanfte Feder-Skalierung (`scale: 0.96`) befriedigend an.
 
@@ -36,7 +37,9 @@ app/
 │   └── (tabs)/
 │       ├── _layout.tsx          # Floating Liquid Glass Tab Bar (expo-blur)
 │       ├── index.tsx            # TAB 1: Übersicht (Dashboard)
-│       └── quests.tsx           # TAB 2: Quests (Foto-Mission & Fakt oder Slop)
+│       ├── quests.tsx           # TAB 2: Quests (Foto-Mission & Fakt oder Slop)
+│       ├── map.tsx              # TAB 3: Karte (Spielorte, Brunnen, Quest-Ziele)
+│       └── leaderboard.tsx      # TAB 4: Ranking (die vier Labore live)
 ├── components/
 │   ├── LiquidTabBar.tsx         # Schwebende Frosted-Glass Tab Bar
 │   ├── HapticButton.tsx         # Bouncy Touch-Button mit expo-haptics & scale(0.96)
@@ -83,18 +86,18 @@ export const THEME = {
 
 ## 4. Screen-Spezifikation im Detail
 
-### 1. Screen: Visuelles Onboarding (`app/app/index.tsx`)
-* **Wann sichtbar:** Wenn noch kein Team gewählt wurde (`selectedTeam === null`).
-* **Header:**
-  * Subtitle: *„AI SLOPPY · ARS ELECTRONICA 2026“* (klein, orange, uppercase).
-  * Title: *„Wähle dein KI-Lab.“* (34px, bold).
-  * Intro: *„Trainiere die AGI mit echten Daten aus Linz. Koste es das gesamte Linzer Trinkwasser.“* (max. 1 Satz!).
-* **Die 4 Team-Karten:**
-  1. 🟧 **ClosedAI** — *„Openness ist überbewertet. Alles bleibt in unserer Blackbox.“*
-  2. 🟪 **Antithropic** — *„100% harmlos. Beantwortet nichts, verbraucht trotzdem Kühlwasser.“*
-  3. ⚡ **Grek** — *„Volles Chaos, null Zensur, maximale Halluzination.“*
-  4. 🌀 **ShallowSeek** — *„Gleiche Power, 90% billiger, weil wir von den anderen kopieren.“*
-* **Aktion:** Tap auf eine Kachel löst `Haptics.impactAsync()` aus, speichert das Team und navigiert sofort auf `/(tabs)/`.
+### 1. Screen: Team-Carousel (`app/app/index.tsx`)
+* **Wann sichtbar:** Wenn noch kein Team gewählt wurde. Der Guard sitzt in `app/app/_layout.tsx` (`Stack.Protected`), **nicht** im Screen — kein `<Redirect>`, sonst Endlosschleife beim Neustart.
+* **Header:** Subtitle *„AI SLOPPY · ARS ELECTRONICA 2026“* (klein, orange, uppercase), Title *„Wähle dein Lab.“* (34px, bold). Kein Intro-Absatz — das Carousel erklärt sich selbst.
+* **Carousel:** horizontale `Animated.ScrollView` mit `snapToInterval`. Die aktive Karte steht auf Skalierung 1, die Nachbarn auf 0.86 bei 40 % Deckkraft und leichtem Versatz nach unten. Nachbarkarten lugen sichtbar hervor, damit das Wischen erkennbar ist.
+* **Farbwechsel:** Hintergrund, Farbschleier und CTA wechseln beim Wischen die Team-Farbe. Umgesetzt über vier deckungsgleiche Flächen mit interpolierter Deckkraft (`Crossfade`) — eine animierte `backgroundColor` ist nicht native-driver-fähig und ruckelt.
+* **Die 4 Teams** (Logos aus `app/assets/logos/`, erzeugt von `scripts/build_logos.py`):
+  1. **ClosedAI** — *„Openness ist überbewertet. Alles bleibt in unserer Blackbox.“*
+  2. **Antithropic** — *„100% harmlos. Beantwortet nichts, verbraucht trotzdem Kühlwasser.“*
+  3. **Grek** — *„Volles Chaos, null Zensur, maximale Halluzination.“*
+  4. **ShallowSeek** — *„Gleiche Power, 90% billiger, weil wir von den anderen kopieren.“*
+* **Karten-Hintergrund bleibt hell.** Zwei der vier Logos sind reine Strichzeichnungen in Schwarz und verschwinden auf dunklen Flächen.
+* **Aktion:** Tap auf die aktive Karte oder auf den CTA speichert das Team. Tap auf eine Nachbarkarte scrollt sie nur heran. Seitenwechsel löst `Haptics.selectionAsync()` aus.
 
 ---
 
@@ -164,7 +167,15 @@ Oben befindet sich ein cleaner **Segmented Switcher** (Pill-Toggle):
 
 ## 5. Datenbasis für Quests (`data/quests.json`)
 
-Damit die App sofort offline und unabhängig läuft, soll Claude eine handliche `quests.json` mit echten Linz-Daten anlegen:
+`app/data/quests.json` wird **nicht von Hand gepflegt**, sondern von `scripts/build_quests.py` erzeugt.
+Die Texte stehen kuratiert im Skript, jede Koordinate und jede Kennzahl wird beim Build aus den Rohdaten
+aufgelöst und schlägt fehl, wenn der Anker nicht mehr eindeutig ist. Damit kann kein Fakt erfunden werden.
+
+Stand: 21 Foto-Quests aus fünf Quellen (Trinkbrunnen, Baumkataster, Festival-Spielorte,
+Defibrillatoren an Spielorten, WLAN-Hotspots) und 16 Fakt-oder-Slop-Aussagen (10 wahr, 6 Slop).
+Neue Quests immer im Skript ergänzen und `python3 scripts/build_quests.py` laufen lassen.
+
+Schema:
 
 ```json
 {

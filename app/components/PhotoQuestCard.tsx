@@ -16,6 +16,18 @@ type Props = {
 const SCAN_DURATION = 1000;
 const VERIFY_DELAY = 600;
 
+/**
+ * Der Akzent gehoert der wichtigsten Ebene: Wasser ist die Waehrung des Spiels,
+ * Baeume sind der Gegenpol. Alle weiteren Quest-Arten laufen ueber die
+ * Graustufen des Systems statt ueber zusaetzliche Markenfarben.
+ */
+const TYPE_TONE: Record<string, { bg: string; fg: string }> = {
+  water: { bg: THEME.colors.primaryLight, fg: THEME.colors.primary },
+  tree: { bg: THEME.colors.successLight, fg: THEME.colors.success },
+};
+
+const NEUTRAL_TONE = { bg: THEME.colors.track, fg: THEME.colors.text };
+
 export function PhotoQuestCard({ quest, done, onComplete }: Props) {
   const [scanning, setScanning] = useState(false);
   const [cardHeight, setCardHeight] = useState(0);
@@ -75,9 +87,9 @@ export function PhotoQuestCard({ quest, done, onComplete }: Props) {
     }, SCAN_DURATION);
   };
 
-  const isWater = quest.type === 'water';
-  const badgeBg = isWater ? THEME.colors.primaryLight : THEME.colors.successLight;
-  const badgeColor = isWater ? THEME.colors.primary : THEME.colors.success;
+  const tone = TYPE_TONE[quest.type] ?? NEUTRAL_TONE;
+  const badgeBg = tone.bg;
+  const badgeColor = tone.fg;
 
   const translateY = laserProgress.interpolate({
     inputRange: [0, 1],

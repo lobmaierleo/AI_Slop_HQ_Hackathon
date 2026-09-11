@@ -28,6 +28,18 @@ Vier verknüpfte Datenbanken:
 
 ## Welt B — Open Data Linz
 
+**Fallstricke, geprüft am 11.09.2026:**
+- **`baumkataster.Stammumfang` hat Ausreißer.** Die Einheit ist cm, aber einzelne Zeilen führen
+  unmögliche Werte (Silber-Weide 11.120, Platane 4.205 — das wären 111 bzw. 42 Meter Umfang).
+  Superlative auf diesem Feld sind wertlos. `Hoehe` und `Schirmdurchmesser` sind sauber.
+- **Superlative im Baumkataster immer an einen Radius binden.** Der höchste Baum im Umkreis von
+  900 m ist ein anderer als im Umkreis von 1.400 m. `scripts/build_quests.py` rechnet solche
+  Aussagen beim Build nach und bricht ab, wenn sie nicht mehr stimmen.
+- **`baumkataster.Flaeche` ist eine numerische Gebiets-ID, kein Ortsname.** `BaumNr` ist nur
+  innerhalb einer Fläche eindeutig — als Schlüssel taugt nur das Paar `(Flaeche, BaumNr)`.
+- **`trinkbrunnen`: `brunnenart` zählt, nicht `trinkwasser`.** 132 Anlagen, davon 80 echte
+  Trinkbrunnen. Zierbrunnen können `trinkwasser == true` tragen und trotzdem keine sein.
+
 **Ort:** `data/linz/<datensatz>/` — übernommen aus dem offiziellen Hackathon-Repo, inklusive der geprüften `README.md` je Datensatz und teilweise `prepare_*.py`-Skripten. Koordinaten sind bereits als `lon`/`lat` (WGS84) aufbereitet; `coordinate_conversion.py` liegt bei, falls EPSG:31255 nachkonvertiert werden muss.
 
 ### Lokal vorhanden (13)
