@@ -7,7 +7,7 @@ Grand Garage Linz, zum Motto *NEGOTIATING HUMANITY*.
 ## Die Idee
 
 Die naheliegende Antwort auf ein Festivalprogramm plus einen Stadtdatensatz ist ein Chatbot, der
-einem sagt, wo man hingehen soll. SELBERDENKEN macht das Gegenteil: Die App behauptet nichts,
+einem sagt, wo man hingehen soll. NoNeed4AI macht das Gegenteil: Die App behauptet nichts,
 sondern schickt einen hin.
 
 Zu jedem Ort steht die Antwort einer Sprachmodell-Anfrage neben dem amtlichen Katastereintrag.
