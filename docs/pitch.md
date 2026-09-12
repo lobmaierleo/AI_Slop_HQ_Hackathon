@@ -1,49 +1,124 @@
-# Pitch und Voting-Taktik
+# Pitch und Voting-Taktik: SELBERDENKEN
 
-Gerüst. Wird am Samstag gefüllt, nicht am Samstag erfunden.
+Stand: Samstag, 12.09.2026. Verbindlicher Ablauf für Leo und Manuel.
 
-## Der Gegenstand
+---
 
-Es gibt **keine URL und keinen QR-Code** — das war eine frühere Planung und ist am 11.09.2026
-bewusst verworfen worden. SELBERDENKEN ist eine native iOS-App und läuft als Release-Build auf
-einem Vorführ-iPhone.
+## 1. Die Ausgangslage & Warum wir gewinnen
 
-- **Das Gerät ist der Pitch.** Beim Community Voting stimmt niemand für etwas, das er nicht
-  selbst angefasst hat — also wird das iPhone herumgereicht, nicht ein Link geteilt.
-- **Release-Build, nicht Debug.** Ein Debug-Build lädt sein JavaScript von Metro und ist ohne
-  den Rechner tot. `npx expo run:ios --device --configuration Release`
-- **Vorher prüfen:** Akku voll, Flugmodus-tauglich (die App braucht kein Netz), Fortschritt
-  auf einen vorzeigbaren Stand gebracht, Zurücksetzen-Knopf kennen.
+1. **Es gibt keine Jury.** Das Community Voting entscheidet. Müde Teilnehmende und Festivalbesucher stimmen nach 15+ Pitches ab.
+2. **Die Konkurrenz baut Slop:** Vier Beispielprojekte waren vorgegeben (Chatbot, Tagesplaner, Umkreissuche, Kalender). Die halbe Konkurrenz hat KI-Wrapper gebaut, die Menschen sagen, was sie tun sollen.
+3. **Unser Gegenentwurf:** Das Motto ist *NEGOTIATING HUMANITY*. In Zeiten von KI-Halluzinationen und synthetischem Slop ist die menschlichste Handlung: **SELBERDENKEN** — selbst hingehen, selbst prüfen, Daten verifizieren.
+4. **Das Vorführ-iPhone ist die Waffe:** Niemand klickt QR-Codes. Wer während der anderen Pitches unser iPhone in der Hand hält, das Netz wachsen lässt und die Haptik spürt, stimmt für uns.
 
-## Aufbau
+---
 
-1. **Der Satz** (10 s) — eine Zahl oder eine Behauptung, die sitzt. Kein „Wir haben eine App
-   gebaut, die…". Beispiel für Idee A1: *„Linz hat 399 Straßen nach Männern benannt und 53 nach
-   Frauen."* Dann Pause.
-2. **Die Wendung** (15 s) — warum das jetzt, hier, mit diesem Festival zu tun hat.
-3. **Die Demo** (45 s) — eine einzige Handlung, vollständig durchgeführt. Nicht durch Features
-   klicken. Wenn möglich: jemanden aus dem Publikum am eigenen Handy mitmachen lassen.
-4. **Die Verschränkung** (15 s) — explizit aussprechen, welche zwei Datenwelten sich hier
-   berühren und warum das ohne beide nicht ginge. Das ist ein wörtliches Bewertungskriterium;
-   die Wähler:innen sollen es abhaken können.
-5. **Das Gerät weggeben** (5 s) — „Probiert es aus, solange die anderen pitchen." Das iPhone
-   wandert ins Publikum und bleibt dort bis zur Abstimmung.
+## 2. Der 90-Sekunden-Bühnenpitch (Wort-für-Wort-Skript)
 
-## Regeln für den Auftritt
+**Rollen:**
+- **Leo (Sprecher):** Blick ins Publikum, redet frei, keine Hektik, gibt das Tempo vor.
+- **Manuel (Operator):** Bedient das Vorführ-iPhone (am Beamer/Display gespiegelt oder gut sichtbar gehalten), exakt synchron zu den Stichworten.
 
-- Zwei Personen, klare Rollen: eine spricht, eine bedient. Kein Wechsel mitten im Pitch.
-- Kein Live-LLM-Call auf der Bühne. Alles vorberechnet.
-- Keine Entschuldigungen für Unfertiges. Nicht Gezeigtes existiert nicht.
-- Offline-Fallback bereit: lokaler Build auf dem Laptop plus Screenshots als PDF.
+---
 
-## Voting-Taktik
+### [0:00 – 0:15] 1. Der Satz & Der Bruch mit den KI-Wrappern (15 s)
 
-Das Voting beginnt direkt nach den Pitches. Was zählt, ist Erinnerung:
+**Leo:**
+> „Alle reden an diesem Wochenende über KI, die uns das Denken abnimmt: Chatbots fürs Festivalprogramm, Algorithmen, die uns sagen, wo wir langgehen sollen.
+> Aber das Festival-Motto heißt *NEGOTIATING HUMANITY*.
+> Und die wichtigste menschliche Eigenschaft gegen KI-Slop ist: **SELBERDENKEN**.
+> Wir glauben der Maschine nicht blind. Wir gehen selbst hin und prüfen nach.“
 
-- **Beschäftigung schlägt Bewunderung.** Wer während der anderen Pitches auf unserer Seite spielt,
-  stimmt für uns. Deshalb etwas bauen, das man *tut*, nicht nur ansieht.
-- **Spuren hinterlassen lassen.** Wenn Besucher:innen etwas beitragen können, das sichtbar bleibt
-  (eine Umbenennung, ein Tipp, ein Eintrag), gehört ihnen ein Stück des Projekts.
-- **Am Vormittag herumgehen.** Andere Teams fragen, was sie bauen, ihre Sachen ausprobieren. Das
-  kostet zwanzig Minuten und ist die beste Investition des Tages.
-- **Titel auf Deutsch und Englisch.** Das Publikum ist gemischt.
+*(Manuel zeigt den Startbildschirm / Quests-Liste im neobrutalistischen Design. Klar, kantig, kein generisches AI-Design.)*
+
+---
+
+### [0:15 – 0:40] 2. Die Verschränkung & Die KI-Gegenprobe (25 s)
+
+**Leo:**
+> „Was passiert, wenn man eine KI nach Linz fragt? Sie halluziniert mit maximaler Selbstsicherheit.
+> Hier am Hauptplatz: Die KI behauptet felsenfest: *‚Es gibt keinen Trinkbrunnen, nur historische Zierbrunnen.‘*
+> Der städtische Trinkbrunnen-Kataster von Linz sagt: *Auslauf TB74, Trinkwasser ja.*
+> Wir haben beide Datenwelten nicht nebeneinander auf eine Karte geklatscht, sondern verschränkt:
+> Jede Entdeckung schlägt eine **Datenbrücke**. Hier am Hauptplatz trifft der meistgenutzte Linzer WLAN-Hotspot auf kostenloses städtisches Trinkwasser.“
+
+*(Manuel tippt auf Quest p1 „Hauptplatz“, scrollt im Sheet kurz auf das schwarze Badge „GERATEN / Was eine KI gesagt hätte“, zeigt die echten Kataster-Zahlen darunter.)*
+
+---
+
+### [0:40 – 1:05] 3. Der Beweis & Das Synapsen-Netz (25 s)
+
+**Leo:**
+> „Wissen entsteht nicht durch Prompts. Es entsteht durch Schritte.
+> Wenn wir vor Ort sind, prüfen wir den Ort ab...“
+
+*(Manuel tippt auf „Fund bestätigen“ — der gelbe „ENTDECKT“-Stempel schlägt mit Doppel-Haptik ein, neue Datenbrücken werden im Sheet sichtbar.)*
+
+**Leo:**
+> „Bumm — Entdeckt. Die Datenbrücke rastet ein.
+> Und jetzt schaut auf das Synapsen-Netz:
+> Für KIs ist ein neuronales Netz eine Blackbox aus Milliarden Parametern.
+> In SELBERDENKEN ist jede Synapse ein echter Weg, den ein Mensch durch Linz gegangen ist.
+> Manuel, lass es wachsen.“
+
+*(Manuel wechselt in den Netz-Tab und drückt auf **„Nochmal wachsen lassen“**. Das Netz baut sich in 5 Sekunden Knoten für Knoten auf, Kanten springen an, Haptik rattert.)*
+
+**Leo:**
+> „23 Orte, 42 Datenbrücken. Das kann keine KI der Welt für dich gehen.“
+
+---
+
+### [1:05 – 1:20] 4. Die Kompassnadel (15 s)
+
+**Leo:**
+> „Und wenn ihr jetzt wissen wollt, wo die nächste unentdeckte Datenbrücke wartet:
+> Das Sheet zeigt euch keinen Google-Maps-Pfeil, sondern eine echte Kompassnadel.“
+
+*(Manuel öffnet einen unentdeckten Ort, dreht das iPhone physisch im Raum — die Nadel rotiert butterweich mit.)*
+
+**Leo:**
+> „Sie zeigt euch live im Raum die Richtung. Hinsehen müsst ihr selbst.“
+
+---
+
+### [1:20 – 1:30] 5. Der Coup: Das Gerät weggeben (10 s)
+
+**Leo:**
+> „Wir haben keine Fake-Website gebaut, keinen QR-Code, keinen Chatbot.
+> SELBERDENKEN läuft nativ auf diesem iPhone.
+> Und das geben wir jetzt euch.
+> Probiert es aus, lasst das Netz wachsen, spürt die Haptik — und stimmt am Ende für **SELBERDENKEN**.“
+
+*(Leo / Manuel geht sofort an den Bühnenrand und drückt das iPhone einer Person in der ersten Reihe in die Hand.)*
+
+---
+
+## 3. Checkliste fürs Vorführ-iPhone (Vor dem Gang auf die Bühne!)
+
+Vor dem Auftritt Punkt für Punkt abhaken:
+
+- [ ] **Release-Build läuft:** `npx expo run:ios --device --configuration Release` (kein Debug-Build, Metro-Server wird nicht gebraucht).
+- [ ] **Flugmodus AN:** Kein WLAN-Risiko in der Grand Garage, kein Nachladen. Die App läuft zu 100 % lokal.
+- [ ] **Display-Sperre auf „Nie“:** iOS Einstellungen → Anzeige & Helligkeit → Automatische Sperre → **Nie**. (Das Gerät darf im Publikum niemals sperren!).
+- [ ] **Fokus / Nicht stören AN:** Keine WhatsApp-, Signal- oder Kalenderbenachrichtigungen während des Herumreichens.
+- [ ] **Helligkeit auf 100 %:** Neobrutalismus braucht vollen Kontrast.
+- [ ] **Töne & Haptik aktiv:** Klingelton leise/stumm, aber **Systemhaptik voll an** (die Vibrationsschläge beim Replay und Stempel sind taktiles Gold).
+- [ ] **Akku > 80 %:** Notfalls Powerbank vor dem Pitch.
+- [ ] **Vorbereiteter Spielstand:**
+  - Ca. 6–8 Quests als **entdeckt** vorbereiten (damit das Netz beim Replay schon ordentlich Synapsen zieht).
+  - Mindestens 2 Quests **unentdeckt** lassen (eine davon für die Vorführung der Kompassnadel bereithalten!).
+  - Den Reset-Button kennen (falls man für den Pitch-Start einen sauberen Zustand braucht).
+
+---
+
+## 4. Taktik für den Nachmittag (Crowd Voting)
+
+Das Voting entscheidet sich **nach** den Pitches, wenn die Leute herumlaufen oder auf die Abstimmung warten:
+
+1. **Das iPhone im Umlauf halten:** 
+   - Das Vorführgerät soll nie bei Leo oder Manuel herumliegen. Es soll immer in den Händen von anderen Teilnehmer:innen sein.
+   - Wenn jemand fragt: „Drück im Netz-Tab mal auf ‚Nochmal wachsen lassen‘.“ – Das ist der 5-Sekunden-Aha-Effekt.
+2. **Der 30-Sekunden-Pitch (beim Networking / Vorführen):**
+   > „Wir haben uns gefragt: Warum lassen wir uns von KI sagen, wie wir Kunst erleben sollen? Bei uns halluziniert die KI oben im Kasten, und unten siehst du die echten Daten aus dem Linzer Kataster. Jedes Mal, wenn du hingehst, wächst das Synapsen-Netz. Nimm mal in die Hand und drück auf ‚Wachsen lassen‘.“
+3. **Konkurrenz-Projekte ansehen & wertschätzen:**
+   - Geht zu anderen Teams, probiert deren Sachen aus. Wer freundlich und interessiert auftritt, bekommt die Stimmen der Teams, die wissen, dass sie selbst nicht gewinnen.

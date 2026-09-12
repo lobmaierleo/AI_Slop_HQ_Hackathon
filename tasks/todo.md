@@ -21,7 +21,7 @@
 - [ ] **Release-Build für die Vorführung.**
       `npx expo run:ios --device --configuration Release` — ein Debug-Build hängt an Metro
       und ist ohne den Rechner tot.
-- [ ] **Pitch.** `docs/pitch.md` gegen den tatsächlichen Stand der App durchgehen.
+- [x] **Pitch.** `docs/pitch.md` mit 90-Sekunden-Skript, Demo-Choreografie, iPhone-Checkliste und Voting-Taktik finalisiert.
 
 ## Bekannte Restposten (bewusst offen gelassen)
 
