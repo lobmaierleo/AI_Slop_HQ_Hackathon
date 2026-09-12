@@ -3,6 +3,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 
 import quests from '@/data/quests.json';
 import { LITERS_PER_QUERY, queriesAvoided } from '@/lib/net';
+import { clearPhotos } from '@/lib/photoStore';
 import type { SymbolName } from '@/components/Symbol';
 
 /** Eine Zeile der Kennzahlentabelle. Beim Build aus der Quellzeile gelesen. */
@@ -161,6 +162,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const resetProgress = useCallback(() => {
     setSaved(EMPTY);
     setPendingQuestId(null);
+    // Die Bilder liegen im Dokumentverzeichnis und ueberleben sonst jeden
+    // Neuanfang -- ohne Eintrag im Spielstand kaeme man nie wieder an sie heran.
+    clearPhotos().catch(() => undefined);
   }, []);
 
   const requestQuest = useCallback((questId: string) => setPendingQuestId(questId), []);

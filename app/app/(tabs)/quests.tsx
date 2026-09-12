@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PhotoQuestCard } from '@/components/PhotoQuestCard';
 import { QuestDetailSheet } from '@/components/QuestDetailSheet';
+import { meters } from '@/lib/net';
+import { useUserLocation } from '@/lib/useUserLocation';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
@@ -11,6 +13,7 @@ import { THEME } from '@/theme/colors';
 export default function QuestsScreen() {
   const { completedQuestIds, pendingQuestId, consumeQuest } = useGameStore();
   const [openQuest, setOpenQuest] = useState<PhotoQuest | null>(null);
+  const position = useUserLocation();
 
   useEffect(() => {
     if (!pendingQuestId) return;
@@ -41,11 +44,14 @@ export default function QuestsScreen() {
             quest={quest}
             done={completedQuestIds.includes(quest.id)}
             onPress={() => setOpenQuest(quest)}
+            distanceM={position ? meters(position.lat, position.lon, quest.lat, quest.lon) : undefined}
           />
         ))}
       </ScrollView>
 
-      <QuestDetailSheet quest={openQuest} onClose={() => setOpenQuest(null)} />
+      {openQuest ? (
+        <QuestDetailSheet quest={openQuest} onClose={() => setOpenQuest(null)} />
+      ) : null}
     </SafeAreaView>
   );
 }

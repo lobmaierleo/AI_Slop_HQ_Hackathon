@@ -140,3 +140,42 @@ für `transform` also `processTransform(null)`. Das ruft unter `__DEV__`
 `transformOrigin`, `fontVariant`, `aspectRatio`, `shadowOffset` — nie zwischen Wert und
 `undefined` umschalten. Immer dieselbe Form ausliefern und stattdessen die Zahlen
 variieren: `transform: [{ translateX: pressed ? offset : 0 }]`.
+
+## Ein Sheet, das `null` rendert, hält trotzdem alle seine Ressourcen
+
+Nach dem Einbau von Standort und Kamera ins `QuestDetailSheet` kamen drei Fehler auf einmal:
+die Karte ließ sich nicht mehr zoomen, ein Tipp im Netz öffnete kein Sheet, und die Kamera
+warf `Cannot read property 'granted' of undefined`.
+
+Gemeinsame Ursache: Das Sheet hängt in drei Screens und gibt bei `quest === null` früh `null`
+zurück — **die Hooks darüber laufen trotzdem**. Damit liefen fünf `watchPositionAsync` und drei
+`useCameraPermissions` parallel. iOS beantwortet immer nur eine Berechtigungsanfrage zur Zeit;
+die übrigen lösen leer auf, deshalb war `result` in `requestPermission()` `undefined`. Und jedes
+Standort-Update rendert den Screen samt `MapView` neu, was auf iOS die laufende Pinch-Geste
+abbricht.
+
+**Regeln:**
+1. Ein Overlay, das Berechtigungen oder Sensoren hält, wird an der Aufrufstelle bedingt
+   eingehängt (`{open ? <Sheet/> : null}`), nicht komponentenintern weggerendert.
+2. Eine Ressource, die mehrere Bildschirme brauchen, gehört in einen Provider — einmal
+   abonnieren, alle lesen. Nicht ein Hook, der pro Aufruf einen eigenen Watcher aufmacht.
+3. Was sich häufig ändert, holt sich seinen Wert selbst. Die Nähe-Leiste ist eine eigene
+   Komponente, damit ein Standortwechsel die Karte darüber nicht anfasst.
+4. Ergebnisse von `requestPermission()` immer optional behandeln (`result?.granted`) und den
+   Aufruf abfangen — sonst ist eine unbehandelte Promise-Rejection der Dank.
+
+## 12.9.2026 — Kamerafreigabe und Kartenzoom, zweiter Anlauf
+
+**Der Systemdialog erscheint nur einmal pro Installation.** `useCameraPermissions()` gibt einen
+Status je Komponenteninstanz zurück; wer daraus `requestPermission()` aufruft, ohne vorher
+`canAskAgain` zu prüfen, bekommt nach einer einmaligen Ablehnung weder Dialog noch Fehler — der
+Knopf wirkt tot. Regel: Status immer frisch beim Modul holen (`Camera.getCameraPermissionsAsync`),
+nur bei `canAskAgain` fragen, und bei `canAskAgain === false` einen Weg in die Einstellungen
+anbieten (`openSettings()` aus `expo-linking`). Info.plist und natives Framework vorher prüfen —
+in der gebauten `.app` unter `DerivedData`, nicht in der Quelle.
+
+**Native Views gehören hinter `memo`.** Der Kartenschirm rendert bei jedem Sheet, jedem
+Store-Update und jedem Standortwechsel; jeder dieser Renders reicht neue Marker-Kinder an die
+`MapView` und bricht auf iOS die laufende Pinch-Geste ab. Eine Komponente nur für die Karte, mit
+`memo` und stabilen Rückrufen via `useCallback`, lässt nur noch durch, was die Karte wirklich
+verändert: Filter und Entdeckungsstand.

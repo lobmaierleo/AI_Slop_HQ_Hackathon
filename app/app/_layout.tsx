@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LocationProvider } from '@/lib/useUserLocation';
 import { preloadSymbolFont } from '@/lib/symbolFont';
 import { GameProvider, useGameStore } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
@@ -46,8 +47,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <GameProvider>
-          <StatusBar style="dark" />
-          <RootNavigator />
+          <LocationProvider>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </LocationProvider>
         </GameProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

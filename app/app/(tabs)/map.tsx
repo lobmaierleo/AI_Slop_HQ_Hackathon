@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
-import type { LatLng, Region } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import type { Region } from 'react-native-maps';
 import Svg, { Circle, Polygon } from 'react-native-svg';
-import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutSurface } from '@/components/BrutSurface';
@@ -13,7 +12,8 @@ import { Symbol } from '@/components/Symbol';
 import { CATEGORY_KEYS, CATEGORY_META, categoryOf, shapePoints, shortLabel } from '@/lib/categories';
 import type { NodeShape } from '@/lib/categories';
 import placesData from '@/data/places.json';
-import { EDGES, formatDistance, meters } from '@/lib/net';
+import { formatDistance, meters } from '@/lib/net';
+import { useUserLocation } from '@/lib/useUserLocation';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
@@ -123,29 +123,6 @@ export default function MapScreen() {
     return all;
   });
   const [openQuest, setOpenQuest] = useState<PhotoQuest | null>(null);
-  const [position, setPosition] = useState<{ lat: number; lon: number } | null>(null);
-  const mapRef = useRef<MapView>(null);
-
-  // Naehe-Radar. Ohne Freigabe passiert schlicht nichts -- die Leiste bleibt weg,
-  // statt eine Fehlermeldung ueber die Karte zu legen.
-  useEffect(() => {
-    let stop: Location.LocationSubscription | undefined;
-    let alive = true;
-
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (!alive || status !== 'granted') return;
-      stop = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.Balanced, distanceInterval: 15 },
-        ({ coords }) => setPosition({ lat: coords.latitude, lon: coords.longitude }),
-      );
-    })().catch(() => undefined);
-
-    return () => {
-      alive = false;
-      stop?.remove();
-    };
-  }, []);
 
   const toggleCategory = (key: CategoryKey) => {
     setActive((current) => ({ ...current, [key]: !current[key] }));
@@ -153,38 +130,57 @@ export default function MapScreen() {
 
   const done = useMemo(() => new Set(completedQuestIds), [completedQuestIds]);
 
-  /** Nur Kanten, deren beide Enden entdeckt sind, spannen sich ueber die Stadt. */
-  const synapses = useMemo(() => {
-    const at = new Map(PHOTO_QUESTS.map((q) => [q.id, q]));
-    return EDGES.filter((e) => done.has(e.a) && done.has(e.b))
-      .map((e) => {
-        const a = at.get(e.a);
-        const b = at.get(e.b);
-        if (!a || !b) return null;
-        return {
-          key: `${e.a}-${e.b}`,
-          color: CATEGORY_META[categoryOf(a.type)].color,
-          coords: [
-            { latitude: a.lat, longitude: a.lon },
-            { latitude: b.lat, longitude: b.lon },
-          ],
-        };
-      })
-      .filter((s): s is { key: string; color: string; coords: LatLng[] } => s !== null);
-  }, [done]);
+  // Stabile Rueckrufe: jede neue Funktionsreferenz waere fuer `MapCanvas` eine
+  // Aenderung und wuerde die Karte samt Markern neu zeichnen.
+  const handleSelect = useCallback((quest: PhotoQuest) => setOpenQuest(quest), []);
+  const handleBackground = useCallback(() => setOpenQuest(null), []);
 
-  /** Der naechste noch unentdeckte Ort -- die eine Zahl, die das Radar braucht. */
-  const nearest = useMemo(() => {
-    if (!position) return null;
-    let best: { quest: PhotoQuest; distance: number } | null = null;
-    for (const quest of PHOTO_QUESTS) {
-      if (done.has(quest.id)) continue;
-      const d = meters(position.lat, position.lon, quest.lat, quest.lon);
-      if (!best || d < best.distance) best = { quest, distance: d };
-    }
-    return best;
-  }, [position, done]);
+  return (
+    <View style={styles.container}>
+      <MapCanvas
+        active={active}
+        done={done}
+        onSelect={handleSelect}
+        onBackground={handleBackground}
+      />
 
+      <MapFilterBar
+        active={active}
+        onToggle={toggleCategory}
+        topOffset={insets.top + THEME.spacing.sm}
+      />
+
+      <NearestBar done={done} />
+
+      {/* Erst einhaengen, wenn wirklich eine Quest offen ist: das Sheet haelt
+          Kamera- und Standortzugriff, und drei schlafende Instanzen in drei
+          Tabs fragen beides dreimal gleichzeitig an. */}
+      {openQuest ? (
+        <QuestDetailSheet quest={openQuest} onClose={() => setOpenQuest(null)} />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Die Karte selbst, abgeschirmt gegen alles, was sie nichts angeht.
+ *
+ * Jeder Neurender der `MapView` bricht auf iOS eine laufende Pinch-Geste ab --
+ * und der Kartenschirm rendert oft: Sheet auf, Sheet zu, Fortschritt gespeichert,
+ * Standort gewandert. `memo` laesst davon nur noch durch, was die Karte
+ * tatsaechlich veraendert: Filter und Entdeckungsstand.
+ */
+const MapCanvas = memo(function MapCanvas({
+  active,
+  done,
+  onSelect,
+  onBackground,
+}: {
+  active: Record<CategoryKey, boolean>;
+  done: Set<string>;
+  onSelect: (quest: PhotoQuest) => void;
+  onBackground: () => void;
+}) {
   // Kontextschicht: eine aktive Kategorie zeigt nicht nur ihre Quests, sondern
   // den ganzen Linzer Datensatz dahinter. Fuer `tree`, `power` und `wifi` gibt
   // es in data/places.json keine solche Schicht -- dort erscheinen nur die
@@ -242,7 +238,7 @@ export default function MapScreen() {
             coordinate={{ latitude: quest.lat, longitude: quest.lon }}
             anchor={found ? MARKER_ANCHOR : UNDISCOVERED_ANCHOR}
             tracksViewChanges={false}
-            onPress={() => setOpenQuest(quest)}
+            onPress={() => onSelect(quest)}
             zIndex={found ? 12 : 10}
           >
             {found ? (
@@ -286,72 +282,73 @@ export default function MapScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        // Android kennt ohnehin nur Google Maps; die Zeile schreibt die Absicht
-        // trotzdem hin, statt sie dem Standardwert zu ueberlassen.
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
-        initialRegion={START_REGION}
-        userInterfaceStyle="light"
-        customMapStyle={HIDE_POI_STYLE}
-        showsUserLocation
-        showsMyLocationButton={false}
-        showsPointsOfInterests={false}
-        showsCompass={false}
-        onPress={() => setOpenQuest(null)}
-      >
-        {/* Schwarze Fassung unten, Kategoriefarbe darueber -- auf heller Karte
-            lesbarer als der fruehere Schein. */}
-        {synapses.map((s) => (
-          <Polyline
-            key={`case-${s.key}`}
-            coordinates={s.coords}
-            strokeColor={THEME.colors.ink}
-            strokeWidth={7}
-            lineCap="round"
-          />
-        ))}
-        {synapses.map((s) => (
-          <Polyline
-            key={s.key}
-            coordinates={s.coords}
-            strokeColor={s.color}
-            strokeWidth={3}
-            lineCap="round"
-          />
-        ))}
+    <MapView
+      style={StyleSheet.absoluteFill}
+      // Android kennt ohnehin nur Google Maps; die Zeile schreibt die Absicht
+      // trotzdem hin, statt sie dem Standardwert zu ueberlassen.
+      provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+      initialRegion={START_REGION}
+      userInterfaceStyle="light"
+      customMapStyle={HIDE_POI_STYLE}
+      showsUserLocation
+      showsMyLocationButton={false}
+      showsPointsOfInterests={false}
+      showsCompass={false}
+      // Die vier Gesten stehen ausgeschrieben da, statt sich auf Standardwerte
+      // zu verlassen: Zoom und Schwenk sind die Karte, Drehen und Neigen
+      // bringen auf einem Stadtplan nur verrutschte Ansichten.
+      zoomEnabled
+      scrollEnabled
+      zoomTapEnabled
+      rotateEnabled={false}
+      pitchEnabled={false}
+      onPress={onBackground}
+    >
+      {active.water ? fountainMarkers : null}
+      {active.venue ? venueMarkers : null}
+      {questMarkers}
+    </MapView>
+  );
+});
 
-        {active.water ? fountainMarkers : null}
-        {active.venue ? venueMarkers : null}
-        {questMarkers}
-      </MapView>
+/**
+ * Die Naehe-Leiste holt sich den Standort selbst.
+ *
+ * Nur so bleibt die Karte darueber beim Gehen unberuehrt: ein Standortwechsel
+ * rendert dann diese Leiste neu und nicht den ganzen Screen -- ein Neurender
+ * der `MapView` bricht auf iOS jede laufende Zoom-Geste ab.
+ */
+function NearestBar({ done }: { done: Set<string> }) {
+  const position = useUserLocation();
 
-      <MapFilterBar
-        active={active}
-        onToggle={toggleCategory}
-        topOffset={insets.top + THEME.spacing.sm}
-      />
+  /** Der naechste noch unentdeckte Ort -- die eine Zahl, die das Radar braucht. */
+  const nearest = useMemo(() => {
+    if (!position) return null;
+    let best: { quest: PhotoQuest; distance: number } | null = null;
+    for (const quest of PHOTO_QUESTS) {
+      if (done.has(quest.id)) continue;
+      const d = meters(position.lat, position.lon, quest.lat, quest.lon);
+      if (!best || d < best.distance) best = { quest, distance: d };
+    }
+    return best;
+  }, [position, done]);
 
-      <View style={styles.bottom} pointerEvents="box-none">
-        {nearest ? (
-          <BrutSurface radius={THEME.radius.md} contentStyle={styles.radar}>
-            <View style={styles.radarIcon}>
-              <Symbol name="location.north.line.fill" size={16} color={THEME.colors.ink} />
-            </View>
-            <View style={styles.radarText}>
-              <Text style={styles.radarLabel}>NÄCHSTER ORT</Text>
-              <Text style={styles.radarTitle} numberOfLines={1}>
-                {nearest.quest.title}
-              </Text>
-            </View>
-            <Text style={styles.radarDistance}>{formatDistance(nearest.distance)}</Text>
-          </BrutSurface>
-        ) : null}
-      </View>
-
-      <QuestDetailSheet quest={openQuest} onClose={() => setOpenQuest(null)} />
+  return (
+    <View style={styles.bottom} pointerEvents="box-none">
+      {nearest ? (
+        <BrutSurface radius={THEME.radius.md} contentStyle={styles.radar}>
+          <View style={styles.radarIcon}>
+            <Symbol name="location.north.line.fill" size={16} color={THEME.colors.ink} />
+          </View>
+          <View style={styles.radarText}>
+            <Text style={styles.radarLabel}>NÄCHSTER ORT</Text>
+            <Text style={styles.radarTitle} numberOfLines={1}>
+              {nearest.quest.title}
+            </Text>
+          </View>
+          <Text style={styles.radarDistance}>{formatDistance(nearest.distance)}</Text>
+        </BrutSurface>
+      ) : null}
     </View>
   );
 }

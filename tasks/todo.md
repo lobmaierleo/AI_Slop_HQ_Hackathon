@@ -88,3 +88,28 @@ einem fremden Rechner, Logos sind seit f9e52d9 raus), `scripts/generate_slop_dat
 Neu geschrieben: `README.md` (enthielt `npm run dev` auf localhost:3000). Umgestellt:
 `DESIGN.md` — der verbindliche Neobrutalismus-Teil steht jetzt oben, die Apple-Analyse
 darunter als ausdrücklich historische Referenz.
+
+## Standort, Route, Kamera, Netz-Aufräumen (12.09.)
+
+Sieben Punkte aus dem Gerätetest, in drei parallelen Paketen abgearbeitet.
+
+Drei neue gemeinsame Module unter `app/lib/`: `useUserLocation.ts` (der Standort-Effekt aus
+`map.tsx` herausgezogen, liefert ohne Freigabe schlicht `null`), `directions.ts` (Fußweg-Route
+an Apple bzw. Google Maps, Web-Fallback) und `photoStore.ts` (Beweisfoto vom Kamera-Cache ins
+Dokumentverzeichnis, dazu `clearPhotos()` für `resetProgress`).
+
+Im Quest-Sheet: die Kartenvorschau ist jetzt ein Knopf — `MapView` mit `pointerEvents="none"`
+in einem `HapticButton`, sonst verschluckt die Karte die Geste — mit gelbem Route-Chip unten
+rechts. Entfernungszeile im Kopf. In der Kennzahlen-Fläche lief der rechte Wert aus dem Rand:
+`statLabel` `flex: 1`, `statValue` `flexShrink: 1` plus rechtsbündig.
+
+Die Kamera liegt nicht mehr als zweites Modal im `pageSheet`-Modal, sondern als absolute Fläche
+darin. Verschachtelte Modals präsentieren auf iOS unzuverlässig — das war der wahrscheinlichste
+Grund, warum der Sucher nicht aufging.
+
+Von der Karte sind die Synapsen-Polylines weg (Doppelung zum Netz-Tab). Im Netz sind die
+Namensschilder an den Knoten weg, und ein Tipp öffnet nicht mehr das kleine Panel unter der
+Tab-Leiste, sondern das gewohnte Quest-Sheet.
+
+Bewusst nicht gebaut: eine eigene Galerie-Seite. Das Foto bleibt im Quest-Sheet — es liegt jetzt
+nur dauerhaft am Gerät statt im Cache.

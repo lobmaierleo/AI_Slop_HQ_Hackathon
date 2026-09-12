@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
+import { formatDistance } from '@/lib/net';
 import { THEME } from '@/theme/colors';
 import type { PhotoQuest } from '@/state/useGameStore';
 
@@ -10,6 +11,7 @@ type Props = {
   quest: PhotoQuest;
   done: boolean;
   onPress: () => void;
+  distanceM?: number;
 };
 
 /** Deutsches Dezimalkomma, immer mit einer Nachkommastelle: 6.4 -> "6,4 L". */
@@ -22,7 +24,7 @@ function formatLiters(value: number): string {
  * "Entdeckt"-Zeile. Bestaetigt wird nicht mehr hier, sondern im
  * QuestDetailSheet -- ein Tipp auf die Kachel oeffnet nur noch das Sheet.
  */
-export function PhotoQuestCard({ quest, done, onPress }: Props) {
+export function PhotoQuestCard({ quest, done, onPress, distanceM }: Props) {
   return (
     <HapticButton
       haptic="light"
@@ -44,9 +46,14 @@ export function PhotoQuestCard({ quest, done, onPress }: Props) {
             <Text style={styles.title} numberOfLines={1}>
               {quest.title}
             </Text>
-            <Text style={styles.location} numberOfLines={1}>
-              {quest.location}
-            </Text>
+            <View style={styles.locationRow}>
+              <Text style={styles.location} numberOfLines={1}>
+                {quest.location}
+              </Text>
+              {distanceM !== undefined ? (
+                <Text style={styles.distance}> · {formatDistance(distanceM)}</Text>
+              ) : null}
+            </View>
             {done ? (
               <View style={styles.doneRow}>
                 <Symbol name="checkmark.seal.fill" size={13} color={THEME.colors.success} />
@@ -116,10 +123,21 @@ const styles = StyleSheet.create({
     color: THEME.colors.text,
     marginTop: THEME.spacing.xs,
   },
+  locationRow: {
+    flexDirection: 'row',
+    marginTop: 1,
+  },
   location: {
     ...THEME.type.caption,
     color: THEME.colors.textMuted,
-    marginTop: 1,
+    flexShrink: 1,
+  },
+  // Eigener, nicht schrumpfender Text -- die Distanz darf nicht verschwinden,
+  // wenn der Ortsname per numberOfLines gekuerzt wird.
+  distance: {
+    ...THEME.type.caption,
+    color: THEME.colors.textMuted,
+    flexShrink: 0,
   },
   teaser: {
     ...THEME.type.caption,

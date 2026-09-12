@@ -31,6 +31,8 @@ const SYMBOLS = {
   wifi: 'wifi',
   magnifyingglass: 'search',
   'location.north.line.fill': 'navigation',
+  'arrow.triangle.turn.up.right.diamond.fill': 'directions',
+  gear: 'settings',
   'photo.fill': 'image',
   xmark: 'close',
   'chevron.right': 'chevron_right',

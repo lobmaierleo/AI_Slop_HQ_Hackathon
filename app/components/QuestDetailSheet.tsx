@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera, CameraView } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import { openSettings } from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrutButton } from '@/components/BrutButton';
@@ -11,6 +12,10 @@ import { FactOrSlopCard } from '@/components/FactOrSlopCard';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import { CATEGORY_META, categoryOf } from '@/lib/categories';
+import { openDirections } from '@/lib/directions';
+import { formatDistance, meters } from '@/lib/net';
+import { savePhoto } from '@/lib/photoStore';
+import { useUserLocation } from '@/lib/useUserLocation';
 import { TRIVIA_QUESTS, triviaFor, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
@@ -33,7 +38,6 @@ function formatLiters(value: number): string {
 export function QuestDetailSheet({ quest, onClose }: Props) {
   const { completedQuestIds, completedPhotos, answeredTriviaIds, completePhotoQuest } =
     useGameStore();
-  const [permission, requestPermission] = useCameraPermissions();
   const [cameraOpen, setCameraOpen] = useState(false);
   /**
    * `takePictureAsync` wirft, solange die Kamera nicht fertig hochgefahren ist.
@@ -45,7 +49,15 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   /** Jeder Fehlschlag bekommt einen sichtbaren Satz. Stiller Abbruch wirkt wie ein toter Knopf. */
   const [problem, setProblem] = useState<string | null>(null);
+  /** Gesperrter Zugriff ist kein Fehler, sondern ein Weg -- er fuehrt in die Einstellungen. */
+  const [blocked, setBlocked] = useState(false);
   const cameraRef = useRef<CameraView | null>(null);
+  const position = useUserLocation();
+  /** Schlaegt das Laden des Beweisfotos fehl, zeigt sich das erst nach dem Rendern -- Hook bleibt fuer jede Quest frisch. */
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [quest?.id]);
 
   if (!quest) return null;
 
@@ -53,6 +65,9 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   const photoUri = completedPhotos[quest.id];
   const trivia = triviaFor(quest);
   const color = CATEGORY_META[categoryOf(quest.type)].color;
+  const distanceLabel = position
+    ? formatDistance(meters(position.lat, position.lon, quest.lat, quest.lon))
+    : null;
 
   const closeCamera = () => {
     setCameraOpen(false);
@@ -63,25 +78,40 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   const handleClose = () => {
     closeCamera();
     setProblem(null);
+    setBlocked(false);
     onClose();
   };
 
   const handleOpenCamera = async () => {
     setProblem(null);
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        // Nach einer Ablehnung fragt iOS nicht erneut -- der Weg fuehrt nur
-        // noch ueber die Einstellungen. Das muss dastehen, sonst wirkt der
-        // Knopf kaputt.
-        setProblem(
-          result.canAskAgain
-            ? 'Ohne Kamerazugriff geht es nicht. Tippe erneut und erlaube den Zugriff.'
-            : 'Der Kamerazugriff ist gesperrt. Du kannst ihn in den Einstellungen freigeben — oder unten ohne Foto bestätigen.',
-        );
-        return;
-      }
+    setBlocked(false);
+
+    // Kein Hook-Zustand, sondern der Stand direkt beim Modul: das Sheet haengt
+    // in mehreren Screens, und ein zwischengespeicherter Status waere dort
+    // jeweils ein eigener, der die Freigabe des anderen nicht mitbekommt.
+    const current = await Camera.getCameraPermissionsAsync().catch(() => null);
+    if (!current) {
+      setProblem('Die Kamera fehlt in dieser Version der App. Installier den aktuellen Build neu.');
+      return;
     }
+
+    // iOS zeigt den Systemdialog genau einmal pro Installation. Danach ist
+    // `canAskAgain` false und das Fragen selbst waere ein stiller Fehlschlag --
+    // deshalb erst pruefen, dann fragen.
+    const result = !current.granted && current.canAskAgain
+      ? ((await Camera.requestCameraPermissionsAsync().catch(() => null)) ?? current)
+      : current;
+
+    if (!result.granted) {
+      setBlocked(!result.canAskAgain);
+      setProblem(
+        result.canAskAgain
+          ? 'Ohne Kamerazugriff geht es nicht. Tippe erneut und erlaube den Zugriff.'
+          : 'iOS hat den Kamerazugriff für SELBERDENKEN gesperrt. Gib ihn in den Einstellungen frei — oder bestätige unten ohne Foto.',
+      );
+      return;
+    }
+
     setCameraReady(false);
     setCameraOpen(true);
   };
@@ -92,7 +122,15 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5, skipProcessing: true });
       if (!photo?.uri) throw new Error('kein Bild');
-      completePhotoQuest(quest.id, photo.uri);
+      // Cache-URI von expo-camera raeumt iOS irgendwann weg -- dauerhaft ablegen.
+      // Schlaegt das fehl, soll die Quest trotzdem gelingen: Cache-URI als Rueckfall.
+      let uri = photo.uri;
+      try {
+        uri = await savePhoto(quest.id, photo.uri);
+      } catch {
+        // Bleibt bei der Cache-URI.
+      }
+      completePhotoQuest(quest.id, uri);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       closeCamera();
     } catch {
@@ -134,6 +172,7 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
               </View>
               <Text style={styles.title}>{quest.title}</Text>
               <Text style={styles.location}>{quest.location}</Text>
+              {distanceLabel ? <Text style={styles.distance}>{distanceLabel} entfernt</Text> : null}
             </View>
             <HapticButton
               haptic="light"
@@ -145,34 +184,55 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
             </HapticButton>
           </View>
 
-          {/* Karte */}
-          <BrutSurface radius={THEME.radius.md} contentStyle={styles.mapContent} style={styles.section}>
-            <MapView
-              style={styles.map}
-              provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
-              initialRegion={{
-                latitude: quest.lat,
-                longitude: quest.lon,
-                latitudeDelta: MAP_DELTA,
-                longitudeDelta: MAP_DELTA,
-              }}
-              scrollEnabled={false}
-              zoomEnabled={false}
-              rotateEnabled={false}
-              pitchEnabled={false}
-              customMapStyle={HIDE_POI_STYLE}
-              showsUserLocation
-              showsPointsOfInterests={false}
-              showsCompass={false}
-            >
-              <Marker coordinate={{ latitude: quest.lat, longitude: quest.lon }} anchor={{ x: 0.5, y: 0.5 }}>
-                <View style={styles.markerWrap}>
-                  <View style={styles.markerShadow} />
-                  <View style={[styles.markerCore, { backgroundColor: color }]} />
+          {/* Karte -- antippbar, oeffnet die Navigations-App aufs Geraet */}
+          <HapticButton
+            haptic="light"
+            pressStyle="push"
+            style={styles.section}
+            onPress={() => openDirections(quest.lat, quest.lon, quest.title)}
+            accessibilityLabel={`Route zu ${quest.title}`}
+          >
+            {(pressed) => (
+              <BrutSurface radius={THEME.radius.md} contentStyle={styles.mapContent} pressed={pressed}>
+                <MapView
+                  style={styles.map}
+                  // Sonst verschluckt die Karte die Tap-Geste vor dem HapticButton.
+                  pointerEvents="none"
+                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
+                  initialRegion={{
+                    latitude: quest.lat,
+                    longitude: quest.lon,
+                    latitudeDelta: MAP_DELTA,
+                    longitudeDelta: MAP_DELTA,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  customMapStyle={HIDE_POI_STYLE}
+                  showsUserLocation
+                  showsPointsOfInterests={false}
+                  showsCompass={false}
+                >
+                  <Marker coordinate={{ latitude: quest.lat, longitude: quest.lon }} anchor={{ x: 0.5, y: 0.5 }}>
+                    <View style={styles.markerWrap}>
+                      <View style={styles.markerShadow} />
+                      <View style={[styles.markerCore, { backgroundColor: color }]} />
+                    </View>
+                  </Marker>
+                </MapView>
+                {/* Hinweis-Chip, faengt selbst keine Geste ab */}
+                <View style={styles.routeChip} pointerEvents="none">
+                  <Symbol
+                    name="arrow.triangle.turn.up.right.diamond.fill"
+                    size={13}
+                    color={THEME.colors.onSignal}
+                  />
+                  <Text style={styles.routeChipText}>Route</Text>
                 </View>
-              </Marker>
-            </MapView>
-          </BrutSurface>
+              </BrutSurface>
+            )}
+          </HapticButton>
 
           {/* Beweis: Foto machen, ohne Foto bestaetigen, oder das Ergebnis zeigen */}
           {!done ? (
@@ -185,18 +245,33 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
                 style={styles.fallbackButton}
               />
               {problem ? <Text style={styles.problemText}>{problem}</Text> : null}
+              {blocked ? (
+                <BrutButton
+                  label="Einstellungen öffnen"
+                  icon="gear"
+                  tone="surface"
+                  onPress={() => openSettings().catch(() => undefined)}
+                  style={styles.fallbackButton}
+                />
+              ) : null}
             </View>
           ) : (
             <View style={styles.section}>
               <Text style={styles.eyebrow}>DEIN BEWEIS</Text>
-              {photoUri ? (
+              {photoUri && !photoLoadFailed ? (
                 <BrutSurface radius={THEME.radius.md} contentStyle={styles.photoContent}>
-                  <Image source={{ uri: photoUri }} style={styles.photo} />
+                  <Image
+                    source={{ uri: photoUri }}
+                    style={styles.photo}
+                    onError={() => setPhotoLoadFailed(true)}
+                  />
                 </BrutSurface>
               ) : (
                 <BrutSurface tone="sunken" radius={THEME.radius.md}>
                   <Text style={styles.proofNote}>
-                    Ohne Foto bestätigt. Der Ort zählt, das Bild fehlt.
+                    {photoUri && photoLoadFailed
+                      ? 'Das Bild liegt nicht mehr am Gerät.'
+                      : 'Ohne Foto bestätigt. Der Ort zählt, das Bild fehlt.'}
                   </Text>
                 </BrutSurface>
               )}
@@ -262,8 +337,13 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
         Fliesstext: man zielt mit dem ganzen Geraet, und ein Sucher, der mit
         der Seite wegscrollt, ist keiner. Der Ausloeser liegt ueber dem Bild,
         wo die Hand ihn beim Halten ohnehin hat.
+
+        Als Flaeche im selben Modal, nicht als zweites Modal darin: ein
+        `pageSheet` mit einem Vollbild-Modal als Kind praesentiert auf iOS
+        unzuverlaessig -- der Sucher blieb dabei schwarz oder ging gar nicht
+        erst auf.
       */}
-      <Modal visible={cameraOpen} animationType="slide" onRequestClose={closeCamera}>
+      {cameraOpen ? (
         <View style={styles.cameraRoot}>
           <CameraView
             ref={cameraRef}
@@ -292,7 +372,7 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
             />
           </SafeAreaView>
         </View>
-      </Modal>
+      ) : null}
     </Modal>
   );
 }
@@ -380,6 +460,11 @@ const styles = StyleSheet.create({
     color: THEME.colors.textMuted,
     marginTop: 2,
   },
+  distance: {
+    ...THEME.type.caption,
+    color: THEME.colors.textMuted,
+    marginTop: 2,
+  },
   closeButton: {
     width: 40,
     height: 40,
@@ -396,10 +481,32 @@ const styles = StyleSheet.create({
   mapContent: {
     padding: 0,
     overflow: 'hidden',
+    // Traeger fuer den absolut positionierten Route-Chip.
+    position: 'relative',
   },
   map: {
     width: '100%',
     height: 180,
+  },
+  routeChip: {
+    position: 'absolute',
+    right: THEME.spacing.xs,
+    bottom: THEME.spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: THEME.spacing.xs,
+    paddingVertical: 4,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
+  },
+  routeChipText: {
+    ...THEME.type.captionStrong,
+    fontSize: 12,
+    lineHeight: 14,
+    color: THEME.colors.onSignal,
   },
   markerWrap: {
     width: 24,
@@ -422,7 +529,11 @@ const styles = StyleSheet.create({
     borderColor: THEME.border.color,
   },
   cameraRoot: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: THEME.colors.ink,
   },
   cameraBar: {
@@ -484,6 +595,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: THEME.spacing.sm,
+    gap: THEME.spacing.sm,
   },
   statRowDivider: {
     borderTopWidth: THEME.border.thin,
@@ -492,10 +604,13 @@ const styles = StyleSheet.create({
   statLabel: {
     ...THEME.type.caption,
     color: THEME.colors.textMuted,
+    flex: 1,
   },
   statValue: {
     ...THEME.type.bodyStrong,
     color: THEME.colors.text,
+    flexShrink: 1,
+    textAlign: 'right',
   },
   teaserText: {
     ...THEME.type.body,

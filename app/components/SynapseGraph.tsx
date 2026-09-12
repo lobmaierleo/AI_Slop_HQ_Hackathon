@@ -12,7 +12,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, G, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polygon } from 'react-native-svg';
 
 import { BrutSurface } from '@/components/BrutSurface';
 import {
@@ -20,7 +20,6 @@ import {
   CATEGORY_META,
   categoryOf,
   shapePoints,
-  shortLabel,
   type NodeShape,
 } from '@/lib/categories';
 import { EDGES, NODES, activeEdges } from '@/lib/net';
@@ -30,12 +29,9 @@ import { THEME, type CategoryKey } from '@/theme/colors';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
 
-/** Rand in Pixeln, damit Beschriftungen der Aussenknoten Platz haben. */
+/** Rand in Pixeln, damit Formen und Schatten der Aussenknoten nicht abgeschnitten werden. */
 const PAD = 30;
 const NODE_R = 11;
-
-const LABEL_FONT = 9;
-const LABEL_HEIGHT = 15;
 
 /** Trefferradius fuer die Tipp-Auswahl -- groesser als die sichtbare Form. */
 const HIT_R = 22;
@@ -71,10 +67,6 @@ export function SynapseGraph({ size, completedIds, selectedId, onSelect, scrollR
 
   const discovered = useMemo(() => NODES.filter((n) => found.has(n.id)), [found]);
   const edges = useMemo(() => activeEdges(completedIds), [completedIds]);
-  const labels = useMemo(
-    () => new Map(PHOTO_QUESTS.map((q) => [q.id, shortLabel(q.title)])),
-    [],
-  );
   const legendKeys = useMemo(
     () =>
       CATEGORY_KEYS.filter((key) => discovered.some((n) => categoryOf(n.type) === key)),
@@ -218,9 +210,7 @@ export function SynapseGraph({ size, completedIds, selectedId, onSelect, scrollR
                     cx={cx}
                     cy={cy}
                     type={node.type}
-                    label={labels.get(node.id) ?? ''}
                     selected={node.id === selectedId}
-                    bounds={size}
                   />
                 );
               })}
@@ -342,22 +332,18 @@ function Synapse({
 
 /**
  * Ein entdeckter Ort: die Form seiner Kategorie in ihrer Farbe, mit schwarzer
- * Kontur und Namensschild. Unentdeckte Orte werden gar nicht erst gerendert.
+ * Kontur. Unentdeckte Orte werden gar nicht erst gerendert.
  */
 function Neuron({
   cx,
   cy,
   type,
-  label,
   selected,
-  bounds,
 }: {
   cx: number;
   cy: number;
   type: string;
-  label: string;
   selected: boolean;
-  bounds: number;
 }) {
   const meta = CATEGORY_META[categoryOf(type)];
   const pop = useSharedValue(0);
@@ -376,10 +362,6 @@ function Neuron({
     r: NODE_R + pop.value * NODE_R * 1.4,
     opacity: pop.value > 0 ? 1 - pop.value : 0,
   }));
-
-  const width = Math.max(label.length * LABEL_FONT * 0.62 + 10, 26);
-  const center = Math.min(Math.max(cx, width / 2 + 2), bounds - width / 2 - 2);
-  const top = cy + NODE_R + 5;
 
   return (
     <G>
@@ -411,30 +393,6 @@ function Neuron({
         stroke={THEME.colors.ink}
         strokeWidth={3}
       />
-      {label ? (
-        <>
-          <Rect
-            x={center - width / 2}
-            y={top}
-            width={width}
-            height={LABEL_HEIGHT}
-            rx={2}
-            fill={THEME.colors.surface}
-            stroke={THEME.colors.ink}
-            strokeWidth={1.5}
-          />
-          <SvgText
-            x={center}
-            y={top + LABEL_HEIGHT - 4.5}
-            fontSize={LABEL_FONT}
-            fontWeight="700"
-            fill={THEME.colors.ink}
-            textAnchor="middle"
-          >
-            {label}
-          </SvgText>
-        </>
-      ) : null}
     </G>
   );
 }
