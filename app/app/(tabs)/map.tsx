@@ -1,10 +1,11 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { Region } from 'react-native-maps';
 import Svg, { Circle, Polygon } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface } from '@/components/BrutSurface';
 import { MapFilterBar } from '@/components/MapFilterBar';
 import { QuestDetailSheet } from '@/components/QuestDetailSheet';
@@ -12,9 +13,9 @@ import { Symbol } from '@/components/Symbol';
 import { CATEGORY_KEYS, CATEGORY_META, categoryOf, shapePoints, shortLabel } from '@/lib/categories';
 import type { NodeShape } from '@/lib/categories';
 import placesData from '@/data/places.json';
-import { formatDistance, meters } from '@/lib/net';
+import { EDGES, formatDistance, meters } from '@/lib/net';
 import { useUserLocation } from '@/lib/useUserLocation';
-import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
+import { PHOTO_QUESTS, QUEST_BY_ID, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
 import type { CategoryKey } from '@/theme/colors';
@@ -123,6 +124,9 @@ export default function MapScreen() {
     return all;
   });
   const [openQuest, setOpenQuest] = useState<PhotoQuest | null>(null);
+  // Imperativer Zugriff auf die Karte: `animateToRegion` laeuft am Ref vorbei
+  // an React und loest keinen Neurender der Marker aus.
+  const mapRef = useRef<MapView | null>(null);
 
   const toggleCategory = (key: CategoryKey) => {
     setActive((current) => ({ ...current, [key]: !current[key] }));
@@ -134,10 +138,16 @@ export default function MapScreen() {
   // Aenderung und wuerde die Karte samt Markern neu zeichnen.
   const handleSelect = useCallback((quest: PhotoQuest) => setOpenQuest(quest), []);
   const handleBackground = useCallback(() => setOpenQuest(null), []);
+  // Nach dem Hineinzoomen fuehrt ein Tipp zurueck zur ganzen Stadt -- das
+  // Gegenstueck zum Doppeltipp im Netz.
+  const handleRecenter = useCallback(() => {
+    mapRef.current?.animateToRegion(START_REGION, 450);
+  }, []);
 
   return (
     <View style={styles.container}>
       <MapCanvas
+        mapRef={mapRef}
         active={active}
         done={done}
         onSelect={handleSelect}
@@ -150,7 +160,7 @@ export default function MapScreen() {
         topOffset={insets.top + THEME.spacing.sm}
       />
 
-      <NearestBar done={done} />
+      <NearestBar done={done} onRecenter={handleRecenter} />
 
       {/* Erst einhaengen, wenn wirklich eine Quest offen ist: das Sheet haelt
           Kamera- und Standortzugriff, und drei schlafende Instanzen in drei
@@ -171,11 +181,13 @@ export default function MapScreen() {
  * tatsaechlich veraendert: Filter und Entdeckungsstand.
  */
 const MapCanvas = memo(function MapCanvas({
+  mapRef,
   active,
   done,
   onSelect,
   onBackground,
 }: {
+  mapRef: React.RefObject<MapView | null>;
   active: Record<CategoryKey, boolean>;
   done: Set<string>;
   onSelect: (quest: PhotoQuest) => void;
@@ -281,8 +293,78 @@ const MapCanvas = memo(function MapCanvas({
     [done, active],
   );
 
+  // Synapsen auf der Karte: dieselben 42 Kanten wie im Netz-Tab, nur hier an
+  // ihren echten Koordinaten. Aktiv (beide Enden entdeckt) als Linie -- die
+  // Datenbruecke dick und gelb, verwandte Orte duenn. Eine wartende
+  // Datenbruecke (erst ein Ende entdeckt) erscheint gestrichelt: der Hinweis,
+  // wohin der naechste Weg fuehrt. Nichts davon rendert waehrend einer Geste,
+  // die Liste haengt nur an Entdeckungsstand und Filter.
+  const edgeLines = useMemo(() => {
+    const lines: React.ReactNode[] = [];
+    for (const edge of EDGES) {
+      const a = QUEST_BY_ID.get(edge.a);
+      const b = QUEST_BY_ID.get(edge.b);
+      if (!a || !b) continue;
+      if (!active[categoryOf(a.type)] || !active[categoryOf(b.type)]) continue;
+      const foundA = done.has(a.id);
+      const foundB = done.has(b.id);
+      if (!foundA && !foundB) continue;
+      const coordinates = [
+        { latitude: a.lat, longitude: a.lon },
+        { latitude: b.lat, longitude: b.lon },
+      ];
+      const key = `${edge.a}-${edge.b}`;
+      if (foundA && foundB) {
+        if (edge.kind === 'space') {
+          lines.push(
+            <Polyline
+              key={`${key}-under`}
+              coordinates={coordinates}
+              strokeColor={THEME.colors.ink}
+              strokeWidth={7}
+              lineCap="round"
+              zIndex={2}
+            />,
+            <Polyline
+              key={`${key}-over`}
+              coordinates={coordinates}
+              strokeColor={THEME.colors.primary}
+              strokeWidth={3}
+              lineCap="round"
+              zIndex={3}
+            />,
+          );
+        } else {
+          lines.push(
+            <Polyline
+              key={key}
+              coordinates={coordinates}
+              strokeColor={THEME.colors.ink}
+              strokeWidth={2}
+              lineCap="round"
+              zIndex={2}
+            />,
+          );
+        }
+      } else if (edge.kind === 'space') {
+        lines.push(
+          <Polyline
+            key={`${key}-pending`}
+            coordinates={coordinates}
+            strokeColor={THEME.colors.ink}
+            strokeWidth={2}
+            lineDashPattern={[4, 6]}
+            zIndex={2}
+          />,
+        );
+      }
+    }
+    return lines;
+  }, [done, active]);
+
   return (
     <MapView
+      ref={mapRef}
       style={StyleSheet.absoluteFill}
       // Android kennt ohnehin nur Google Maps; die Zeile schreibt die Absicht
       // trotzdem hin, statt sie dem Standardwert zu ueberlassen.
@@ -306,6 +388,7 @@ const MapCanvas = memo(function MapCanvas({
     >
       {active.water ? fountainMarkers : null}
       {active.venue ? venueMarkers : null}
+      {edgeLines}
       {questMarkers}
     </MapView>
   );
@@ -318,7 +401,7 @@ const MapCanvas = memo(function MapCanvas({
  * rendert dann diese Leiste neu und nicht den ganzen Screen -- ein Neurender
  * der `MapView` bricht auf iOS jede laufende Zoom-Geste ab.
  */
-function NearestBar({ done }: { done: Set<string> }) {
+function NearestBar({ done, onRecenter }: { done: Set<string>; onRecenter: () => void }) {
   const position = useUserLocation();
 
   /** Der naechste noch unentdeckte Ort -- die eine Zahl, die das Radar braucht. */
@@ -335,6 +418,17 @@ function NearestBar({ done }: { done: Set<string> }) {
 
   return (
     <View style={styles.bottom} pointerEvents="box-none">
+      <View style={styles.recenterRow} pointerEvents="box-none">
+        <BrutButton
+          label="Alle Orte"
+          icon="arrow.up.left.and.arrow.down.right"
+          size="sm"
+          shadow="sm"
+          haptic="light"
+          onPress={onRecenter}
+          accessibilityLabel="Karte auf alle Orte zuruecksetzen"
+        />
+      </View>
       {nearest ? (
         <BrutSurface radius={THEME.radius.md} contentStyle={styles.radar}>
           <View style={styles.radarIcon}>
@@ -415,6 +509,11 @@ const styles = StyleSheet.create({
     left: THEME.spacing.md,
     right: THEME.spacing.md,
     bottom: THEME.tabBarClearance,
+    gap: THEME.spacing.sm,
+  },
+  // Rechts, wo der Daumen der haltenden Hand ohnehin liegt.
+  recenterRow: {
+    alignItems: 'flex-end',
   },
   radar: {
     flexDirection: 'row',

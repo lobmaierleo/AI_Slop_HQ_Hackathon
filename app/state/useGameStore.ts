@@ -42,6 +42,9 @@ export type TriviaQuest = {
 export const PHOTO_QUESTS = quests.photoQuests as PhotoQuest[];
 export const TRIVIA_QUESTS = quests.triviaQuests as TriviaQuest[];
 
+/** Ort nach ID -- Karte und Sheet loesen damit die Enden einer Kante auf. */
+export const QUEST_BY_ID = new Map(PHOTO_QUESTS.map((q) => [q.id, q]));
+
 const TRIVIA_BY_ID = new Map(TRIVIA_QUESTS.map((t) => [t.id, t]));
 
 /**

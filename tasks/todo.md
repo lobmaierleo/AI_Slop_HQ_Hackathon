@@ -113,3 +113,22 @@ Tab-Leiste, sondern das gewohnte Quest-Sheet.
 
 Bewusst nicht gebaut: eine eigene Galerie-Seite. Das Foto bleibt im Quest-Sheet — es liegt jetzt
 nur dauerhaft am Gerät statt im Cache.
+
+## 12.09. Vormittag, zweiter Rechner: Paketstand, Karte, Entdeckungsmoment
+
+- **Ursache der gemeldeten Bugs war der Paketstand.** `expo-camera` kam um 09:52 in die
+  `package.json`, die `node_modules` waren vom Vortag. `npm install` nachgeholt, `tsc` und
+  `expo export` laufen wieder durch. Regel in `lessons.md`.
+- **Kamera-Pfad gehärtet.** `try/catch` um den ganzen Freigabe-Ablauf mit sichtbarem Satz, und
+  nach dem Rückweg aus den iOS-Einstellungen prüft das Sheet die Freigabe von selbst neu.
+- **Karte:** Synapsen und Datenbrücken als Linien an den echten Koordinaten (aktiv dick gelb,
+  wartend gestrichelt), Knopf „Alle Orte" als Rücksprung nach dem Zoomen. Beides über `memo` und
+  Ref, kein Neurender während einer Geste.
+- **Sheet:** „ENTDECKT"-Stempel mit Federanimation und doppeltem Haptikschlag, darunter die neu
+  entstandenen Synapsen mit Partnerort und Datensatz.
+- Neu: `app/components/CategoryShape.tsx` (Kategorieform als kleines SVG). Karte, Filterleiste
+  und Netz haben noch je eine eigene Kopie der Formlogik — nach dem Freeze zusammenziehen.
+- Council-Protokoll in `docs/council.md`. Offen für Leo + Manuel: Leaderboard behalten oder
+  streichen.
+- **Am Gerät ungeprüft** (kein iPhone an diesem Rechner): Pinch-Zoom, Kameradialog, Stempel,
+  Linien. Vor dem Freeze einmal mit `npx expo start --clear` auf dem iPhone durchgehen.

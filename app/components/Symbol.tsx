@@ -38,6 +38,7 @@ const SYMBOLS = {
   'chevron.right': 'chevron_right',
   circle: 'circle',
   'trophy.fill': 'trophy',
+  'arrow.up.left.and.arrow.down.right': 'zoom_out_map',
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLS;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, AppState, Image, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Camera, CameraView } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
@@ -8,19 +8,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface } from '@/components/BrutSurface';
+import { CategoryShape } from '@/components/CategoryShape';
 import { FactOrSlopCard } from '@/components/FactOrSlopCard';
 import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import { CATEGORY_META, categoryOf } from '@/lib/categories';
 import { openDirections } from '@/lib/directions';
-import { formatDistance, meters } from '@/lib/net';
+import { activeEdges, formatDistance, meters } from '@/lib/net';
+import type { GraphEdge } from '@/lib/net';
 import { savePhoto } from '@/lib/photoStore';
 import { useUserLocation } from '@/lib/useUserLocation';
-import { TRIVIA_QUESTS, triviaFor, useGameStore } from '@/state/useGameStore';
+import { QUEST_BY_ID, TRIVIA_QUESTS, triviaFor, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
 
 type Props = { quest: PhotoQuest | null; onClose: () => void };
+
+/** Eine Kante, die durch den aktuellen Fund an beiden Enden entdeckt wurde, samt Gegenueber. */
+type NewLink = { edge: GraphEdge; partner: PhotoQuest };
 
 const MAP_DELTA = 0.004;
 
@@ -51,6 +56,13 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   const [problem, setProblem] = useState<string | null>(null);
   /** Gesperrter Zugriff ist kein Fehler, sondern ein Weg -- er fuehrt in die Einstellungen. */
   const [blocked, setBlocked] = useState(false);
+  /**
+   * Der Moment der Entdeckung, nur fuer diese Sitzung des Sheets: der Stempel
+   * schlaegt auf, und die Synapsen, die gerade neu entstanden sind, stehen mit
+   * Namen da. Beim naechsten Oeffnen ist der Ort einfach entdeckt.
+   */
+  const [justDiscovered, setJustDiscovered] = useState(false);
+  const [newLinks, setNewLinks] = useState<NewLink[]>([]);
   const cameraRef = useRef<CameraView | null>(null);
   const position = useUserLocation();
   /** Schlaegt das Laden des Beweisfotos fehl, zeigt sich das erst nach dem Rendern -- Hook bleibt fuer jede Quest frisch. */
@@ -58,6 +70,28 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   useEffect(() => {
     setPhotoLoadFailed(false);
   }, [quest?.id]);
+
+  /**
+   * Wer den Zugriff in den iOS-Einstellungen freigibt, kommt in die App
+   * zurueck, ohne etwas anzutippen. Der gesperrte Zustand muss dann von
+   * selbst verschwinden -- sonst steht der Satz "gesperrt" neben einer
+   * Kamera, die laengst darf.
+   */
+  useEffect(() => {
+    if (!blocked) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      Camera.getCameraPermissionsAsync()
+        .then((current) => {
+          if (current?.granted) {
+            setBlocked(false);
+            setProblem(null);
+          }
+        })
+        .catch(() => undefined);
+    });
+    return () => sub.remove();
+  }, [blocked]);
 
   if (!quest) return null;
 
@@ -75,6 +109,31 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
     setBusy(false);
   };
 
+  /** Kanten, die erst durch diesen Fund an beiden Enden entdeckt sind. */
+  const linksGainedBy = (questId: string): NewLink[] => {
+    const before = new Set(activeEdges(completedQuestIds).map((e) => `${e.a}-${e.b}`));
+    return activeEdges([...completedQuestIds, questId])
+      .filter((e) => !before.has(`${e.a}-${e.b}`))
+      .flatMap((edge) => {
+        const partner = QUEST_BY_ID.get(edge.a === questId ? edge.b : edge.a);
+        return partner ? [{ edge, partner }] : [];
+      });
+  };
+
+  /**
+   * Der eine Weg, auf dem ein Ort entdeckt wird -- mit oder ohne Foto. Erst die
+   * neuen Kanten festhalten (solange der Spielstand noch der alte ist), dann
+   * den Fund eintragen. Zwei Schlaege in der Hand: der Stempel und die
+   * Bestaetigung.
+   */
+  const markDiscovered = (photoUri?: string) => {
+    setNewLinks(linksGainedBy(quest.id));
+    setJustDiscovered(true);
+    completePhotoQuest(quest.id, photoUri);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  };
+
   const handleClose = () => {
     closeCamera();
     setProblem(null);
@@ -86,34 +145,41 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
     setProblem(null);
     setBlocked(false);
 
-    // Kein Hook-Zustand, sondern der Stand direkt beim Modul: das Sheet haengt
-    // in mehreren Screens, und ein zwischengespeicherter Status waere dort
-    // jeweils ein eigener, der die Freigabe des anderen nicht mitbekommt.
-    const current = await Camera.getCameraPermissionsAsync().catch(() => null);
-    if (!current) {
-      setProblem('Die Kamera fehlt in dieser Version der App. Installier den aktuellen Build neu.');
-      return;
+    // Alles in einem Fangnetz: Wirft das Modul selbst (etwa weil es im
+    // Bundle fehlt), landet der Fehler sonst als stumme Promise-Ablehnung --
+    // und ein Knopf, der nichts sagt, ist von einem toten nicht zu
+    // unterscheiden.
+    try {
+      // Kein Hook-Zustand, sondern der Stand direkt beim Modul: das Sheet haengt
+      // in mehreren Screens, und ein zwischengespeicherter Status waere dort
+      // jeweils ein eigener, der die Freigabe des anderen nicht mitbekommt.
+      const current = await Camera.getCameraPermissionsAsync();
+
+      // iOS zeigt den Systemdialog genau einmal pro Installation. Danach ist
+      // `canAskAgain` false und das Fragen selbst waere ein stiller Fehlschlag --
+      // deshalb erst pruefen, dann fragen.
+      const result =
+        !current?.granted && current?.canAskAgain !== false
+          ? ((await Camera.requestCameraPermissionsAsync()) ?? current)
+          : current;
+
+      if (!result?.granted) {
+        const canAskAgain = result?.canAskAgain !== false;
+        setBlocked(!canAskAgain);
+        setProblem(
+          canAskAgain
+            ? 'Ohne Kamerazugriff geht es nicht. Tippe erneut und erlaube den Zugriff.'
+            : 'iOS hat den Kamerazugriff gesperrt. Gib ihn in den Einstellungen frei -- oder bestätige unten ohne Foto.',
+        );
+        return;
+      }
+
+      setCameraReady(false);
+      setCameraOpen(true);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      setProblem(`Die Kamera antwortet nicht (${reason}). Bestätige unten ohne Foto.`);
     }
-
-    // iOS zeigt den Systemdialog genau einmal pro Installation. Danach ist
-    // `canAskAgain` false und das Fragen selbst waere ein stiller Fehlschlag --
-    // deshalb erst pruefen, dann fragen.
-    const result = !current.granted && current.canAskAgain
-      ? ((await Camera.requestCameraPermissionsAsync().catch(() => null)) ?? current)
-      : current;
-
-    if (!result.granted) {
-      setBlocked(!result.canAskAgain);
-      setProblem(
-        result.canAskAgain
-          ? 'Ohne Kamerazugriff geht es nicht. Tippe erneut und erlaube den Zugriff.'
-          : 'iOS hat den Kamerazugriff für SELBERDENKEN gesperrt. Gib ihn in den Einstellungen frei — oder bestätige unten ohne Foto.',
-      );
-      return;
-    }
-
-    setCameraReady(false);
-    setCameraOpen(true);
   };
 
   const handleShutter = async () => {
@@ -130,8 +196,7 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
       } catch {
         // Bleibt bei der Cache-URI.
       }
-      completePhotoQuest(quest.id, uri);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      markDiscovered(uri);
       closeCamera();
     } catch {
       // Die Kamera bleibt offen: ein zweiter Versuch soll einen Tipp kosten,
@@ -144,8 +209,7 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
   const handleFallbackConfirm = () => {
     setProblem(null);
     closeCamera();
-    completePhotoQuest(quest.id);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    markDiscovered();
   };
 
   return (
@@ -258,23 +322,64 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
           ) : (
             <View style={styles.section}>
               <Text style={styles.eyebrow}>DEIN BEWEIS</Text>
-              {photoUri && !photoLoadFailed ? (
-                <BrutSurface radius={THEME.radius.md} contentStyle={styles.photoContent}>
-                  <Image
-                    source={{ uri: photoUri }}
-                    style={styles.photo}
-                    onError={() => setPhotoLoadFailed(true)}
-                  />
-                </BrutSurface>
-              ) : (
-                <BrutSurface tone="sunken" radius={THEME.radius.md}>
-                  <Text style={styles.proofNote}>
-                    {photoUri && photoLoadFailed
-                      ? 'Das Bild liegt nicht mehr am Gerät.'
-                      : 'Ohne Foto bestätigt. Der Ort zählt, das Bild fehlt.'}
+              <View style={styles.proofWrap}>
+                {photoUri && !photoLoadFailed ? (
+                  <BrutSurface radius={THEME.radius.md} contentStyle={styles.photoContent}>
+                    <Image
+                      source={{ uri: photoUri }}
+                      style={styles.photo}
+                      onError={() => setPhotoLoadFailed(true)}
+                    />
+                  </BrutSurface>
+                ) : (
+                  <BrutSurface tone="sunken" radius={THEME.radius.md}>
+                    <Text style={styles.proofNote}>
+                      {photoUri && photoLoadFailed
+                        ? 'Das Bild liegt nicht mehr am Gerät.'
+                        : 'Ohne Foto bestätigt. Der Ort zählt, das Bild fehlt.'}
+                    </Text>
+                  </BrutSurface>
+                )}
+                <DiscoveredStamp animate={justDiscovered} />
+              </View>
+
+              {/* Die Verschraenkung im Moment des Funds: welche Verbindung gibt es
+                  jetzt, die es vorher nicht gab -- und zu welchem Datensatz. */}
+              {newLinks.length > 0 ? (
+                <View style={styles.linksBlock}>
+                  <Text style={styles.eyebrow}>
+                    {newLinks.length === 1 ? 'NEUE SYNAPSE' : 'NEUE SYNAPSEN'}
                   </Text>
-                </BrutSurface>
-              )}
+                  {newLinks.map(({ edge, partner }) => {
+                    const meta = CATEGORY_META[categoryOf(partner.type)];
+                    const bridge = edge.kind === 'space';
+                    return (
+                      <BrutSurface
+                        key={`${edge.a}-${edge.b}`}
+                        tone={bridge ? 'primary' : 'surface'}
+                        shadow="sm"
+                        radius={THEME.radius.sm}
+                        style={styles.linkWrap}
+                        contentStyle={styles.linkRow}
+                      >
+                        <CategoryShape shape={meta.shape} size={22} r={8} fill={meta.color} />
+                        <View style={styles.linkText}>
+                          <Text style={styles.linkKind}>
+                            {bridge ? 'Datenbrücke' : 'Verwandter Ort'} · {partner.badge}
+                          </Text>
+                          <Text style={styles.linkTitle} numberOfLines={1}>
+                            {partner.title}
+                          </Text>
+                        </View>
+                      </BrutSurface>
+                    );
+                  })}
+                  <Text style={styles.linkNote}>
+                    Entstanden, weil du beide Enden selbst gesehen hast. Im Netz und auf der
+                    Karte leuchtet die Verbindung jetzt.
+                  </Text>
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -374,6 +479,33 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
         </View>
       ) : null}
     </Modal>
+  );
+}
+
+/**
+ * Der Stempel auf dem Beweis. Beim Fund in dieser Sitzung schlaegt er aus der
+ * Vergroesserung auf die Karte -- danach ist er einfach da, so wie ein Stempel
+ * auf Papier nicht zweimal aufschlaegt.
+ */
+function DiscoveredStamp({ animate }: { animate: boolean }) {
+  const scale = useRef(new Animated.Value(animate ? 2.6 : 1)).current;
+  const opacity = useRef(new Animated.Value(animate ? 0 : 1)).current;
+
+  useEffect(() => {
+    if (!animate) return;
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 90, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 9 }),
+    ]).start();
+  }, [animate, opacity, scale]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.stamp, { opacity, transform: [{ rotate: '-8deg' }, { scale }] }]}
+    >
+      <Text style={styles.stampText}>ENTDECKT</Text>
+    </Animated.View>
   );
 }
 
@@ -572,6 +704,60 @@ const styles = StyleSheet.create({
   proofNote: {
     ...THEME.type.body,
     color: THEME.colors.textMuted,
+  },
+  proofWrap: {
+    position: 'relative',
+  },
+  // Gelb, dick gerahmt, leicht schief -- wie mit der Hand aufgeschlagen. Kein
+  // Schatten: ein Stempel liegt nicht auf dem Papier, er ist im Papier.
+  stamp: {
+    position: 'absolute',
+    top: -THEME.spacing.sm,
+    right: THEME.spacing.md,
+    paddingHorizontal: THEME.spacing.sm,
+    paddingVertical: THEME.spacing.xs,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.width,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
+  },
+  stampText: {
+    ...THEME.type.eyebrow,
+    fontSize: 14,
+    lineHeight: 18,
+    color: THEME.colors.onSignal,
+  },
+  linksBlock: {
+    marginTop: THEME.spacing.md,
+  },
+  linkWrap: {
+    marginBottom: THEME.spacing.xs,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing.sm,
+    paddingVertical: THEME.spacing.sm,
+    paddingHorizontal: THEME.spacing.sm,
+  },
+  linkText: {
+    flex: 1,
+  },
+  linkKind: {
+    ...THEME.type.eyebrow,
+    fontSize: 11,
+    lineHeight: 14,
+    color: THEME.colors.onSignal,
+    textTransform: 'uppercase',
+  },
+  linkTitle: {
+    ...THEME.type.bodyStrong,
+    color: THEME.colors.text,
+  },
+  linkNote: {
+    ...THEME.type.caption,
+    color: THEME.colors.textMuted,
+    marginTop: THEME.spacing.xs,
   },
   photoContent: {
     padding: 0,

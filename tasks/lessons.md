@@ -179,3 +179,21 @@ Store-Update und jedem Standortwechsel; jeder dieser Renders reicht neue Marker-
 `MapView` und bricht auf iOS die laufende Pinch-Geste ab. Eine Komponente nur für die Karte, mit
 `memo` und stabilen Rückrufen via `useCallback`, lässt nur noch durch, was die Karte wirklich
 verändert: Filter und Entdeckungsstand.
+
+## 12.9.2026 — „Kamera fragt nie", „Karte nicht zoombar": es war der Paketstand, nicht der Code
+
+**Symptom:** Am zweiten Rechner kam auf dem iPhone nie der Kameradialog, und die Karte liess sich
+nicht zoomen — obwohl der Code beide Fehler laut `lessons.md` schon zweimal behoben hatte.
+
+**Ursache:** `expo-camera` kam um 09:52 in die `package.json`, die `node_modules` auf dem zweiten
+Rechner stammten vom Vortag. `npx tsc --noEmit` meldete nur `Cannot find module 'expo-camera'`, und
+Metro haette den aktuellen Stand gar nicht buendeln koennen. Was auf dem Telefon lief, war das
+Bundle vom Vortag — mit genau den zwei Fehlern, die inzwischen behoben waren.
+
+**Regel:** Nach jedem `git pull` zuerst `cd app && npm install && npx tsc --noEmit`. Ein Fehlerbild,
+das „schon behoben" ist, ist zuerst ein Verdacht auf einen alten Build, nicht auf den Code.
+Metro danach einmal mit `npx expo start --clear` starten, sonst liefert der Cache das alte Bundle.
+
+**Zweite Lehre:** `await Modul.funktion().catch(...)` faengt nur die Promise. Ist `Modul` selbst
+`undefined`, wirft der Aufruf synchron, die `async`-Funktion lehnt ab, und der Knopf schweigt.
+Deshalb steht in `handleOpenCamera` jetzt ein `try/catch` um den ganzen Ablauf, mit sichtbarem Satz.
