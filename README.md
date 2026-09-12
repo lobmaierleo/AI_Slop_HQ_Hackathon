@@ -1,4 +1,4 @@
-# SELBERDENKEN
+# NoNeed4AI
 
 Eine native iOS-App, die Linz zu Fuß erschließt und dabei vorführt, wo künstliche Intelligenz
 sich irrt. Entstanden beim AI Hackathon des Ars Electronica Festivals, 11.–12. September 2026,
