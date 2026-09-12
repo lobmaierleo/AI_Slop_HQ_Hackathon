@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { Region } from 'react-native-maps';
 import Svg, { Circle, Polygon } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,9 +13,9 @@ import { Symbol } from '@/components/Symbol';
 import { CATEGORY_KEYS, CATEGORY_META, categoryOf, shapePoints, shortLabel } from '@/lib/categories';
 import type { NodeShape } from '@/lib/categories';
 import placesData from '@/data/places.json';
-import { EDGES, formatDistance, meters } from '@/lib/net';
+import { formatDistance, meters } from '@/lib/net';
 import { useUserLocation } from '@/lib/useUserLocation';
-import { PHOTO_QUESTS, QUEST_BY_ID, useGameStore } from '@/state/useGameStore';
+import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
 import type { CategoryKey } from '@/theme/colors';
@@ -316,75 +316,6 @@ const MapCanvas = memo(function MapCanvas({
     [done, active],
   );
 
-  // Synapsen auf der Karte: dieselben 42 Kanten wie im Netz-Tab, nur hier an
-  // ihren echten Koordinaten. Aktiv (beide Enden entdeckt) als Linie -- die
-  // Datenbruecke dick und gelb, verwandte Orte duenn. Eine wartende
-  // Datenbruecke (erst ein Ende entdeckt) erscheint gestrichelt: der Hinweis,
-  // wohin der naechste Weg fuehrt. Nichts davon rendert waehrend einer Geste,
-  // die Liste haengt nur an Entdeckungsstand und Filter.
-  const edgeLines = useMemo(() => {
-    const lines: React.ReactNode[] = [];
-    for (const edge of EDGES) {
-      const a = QUEST_BY_ID.get(edge.a);
-      const b = QUEST_BY_ID.get(edge.b);
-      if (!a || !b) continue;
-      if (!active[categoryOf(a.type)] || !active[categoryOf(b.type)]) continue;
-      const foundA = done.has(a.id);
-      const foundB = done.has(b.id);
-      if (!foundA && !foundB) continue;
-      const coordinates = [
-        { latitude: a.lat, longitude: a.lon },
-        { latitude: b.lat, longitude: b.lon },
-      ];
-      const key = `${edge.a}-${edge.b}`;
-      if (foundA && foundB) {
-        if (edge.kind === 'space') {
-          lines.push(
-            <Polyline
-              key={`${key}-under`}
-              coordinates={coordinates}
-              strokeColor={THEME.colors.ink}
-              strokeWidth={7}
-              lineCap="round"
-              zIndex={2}
-            />,
-            <Polyline
-              key={`${key}-over`}
-              coordinates={coordinates}
-              strokeColor={THEME.colors.primary}
-              strokeWidth={3}
-              lineCap="round"
-              zIndex={3}
-            />,
-          );
-        } else {
-          lines.push(
-            <Polyline
-              key={key}
-              coordinates={coordinates}
-              strokeColor={THEME.colors.ink}
-              strokeWidth={2}
-              lineCap="round"
-              zIndex={2}
-            />,
-          );
-        }
-      } else if (edge.kind === 'space') {
-        lines.push(
-          <Polyline
-            key={`${key}-pending`}
-            coordinates={coordinates}
-            strokeColor={THEME.colors.ink}
-            strokeWidth={2}
-            lineDashPattern={[4, 6]}
-            zIndex={2}
-          />,
-        );
-      }
-    }
-    return lines;
-  }, [done, active]);
-
   return (
     <MapView
       ref={mapRef}
@@ -413,7 +344,6 @@ const MapCanvas = memo(function MapCanvas({
     >
       {active.water ? fountainMarkers : null}
       {active.venue ? venueMarkers : null}
-      {edgeLines}
       {questMarkers}
     </MapView>
   );
