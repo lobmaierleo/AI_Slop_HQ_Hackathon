@@ -85,9 +85,13 @@ export function BrutSurface({
               borderRadius: radius,
               borderWidth: thinBorder ? THEME.border.thin : THEME.border.width,
               // Gedrueckt rutscht die Karte genau auf die Stelle ihres Schattens.
-              transform: pressed
-                ? [{ translateX: offset }, { translateY: offset }]
-                : undefined,
+              // Das Array steht auch im Ruhezustand da, nur mit 0: waere es dort
+              // `undefined`, wuerde Fabric beim Loslassen `processTransform(null)`
+              // aufrufen und im Dev-Build mit "forEach of null" abstuerzen.
+              transform: [
+                { translateX: pressed ? offset : 0 },
+                { translateY: pressed ? offset : 0 },
+              ],
             },
             contentStyle,
           ]}

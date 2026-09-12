@@ -65,3 +65,78 @@ bekommt einen eigenen Namen (`overview.tsx`).
 `xcrun simctl io booted screenshot` lesen. Reload ohne Tastatur:
 `curl http://localhost:8081/reload`, Navigation testen mit
 `xcrun simctl openurl booted "aisloppy:///overview"`.
+
+## 2026-09-11 — Abgeschnittene Button-Beschriftungen (BrutSurface-Polster vs. feste Höhe)
+
+**Symptom:** Bei „Vor Ort bestätigen", „Eigenes Netz aktivieren" und weiteren gelben
+Knöpfen war der Text horizontal in der Mitte abgeschnitten — oben und unten fehlte je
+ein Streifen der Schrift.
+
+**Ursache:** `BrutSurface` polstert ihre Karte fest mit `padding: THEME.spacing.md`
+(16px). Die Aufrufstellen setzten in `contentStyle` eine feste `height: 50`. Da
+`contentStyle` nur `height` überschreibt und das vertikale Polster stehen lässt, bleibt
+für den Inhalt `50 − 2 × 16 = 18px` — bei `THEME.type.bodyStrong` mit Zeilenhöhe 25.
+Der Text wurde also nicht umbrochen, sondern beschnitten. Dasselbe Muster lag an acht
+Stellen wortgleich im Code.
+
+**Regel:** Nie eine feste `height` in eine `contentStyle` von `BrutSurface` schreiben.
+Wo Mindesthöhe nötig ist: `minHeight` plus eigenes `paddingVertical`. Alle Knöpfe gehen
+ab jetzt durch `app/components/BrutButton.tsx`, das genau das kapselt — das Muster
+„HapticButton + BrutSurface + Text" nicht mehr von Hand nachbauen.
+
+**Verallgemeinerung:** Ein Wrapper mit eigenem Polster und eine feste Außenhöhe an der
+Aufrufstelle sind grundsätzlich ein Widerspruch. Achtmal dasselbe Muster im Code war
+der eigentliche Befund — nicht acht Einzelfehler, sondern eine fehlende Komponente.
+
+## Stiller Fehlerzweig wirkt wie ein toter Knopf (12.09.2026)
+
+**Symptom:** Im Quest-Subfenster reagierte „Foto machen" scheinbar gar nicht, der
+Auslöser erst nach vielen Versuchen, und „Ohne Foto bestätigen" schien wirkungslos.
+
+**Ursachen — drei, alle derselben Art:**
+
+1. `takePictureAsync` wirft, solange die Kamera nicht fertig initialisiert ist. Es gab
+   keinen `onCameraReady`-Zustand, und der `catch`-Zweig schloss die Kamera. Jeder zu
+   frühe Tipp warf den Benutzer also an den Anfang zurück — bis das Gerät zufällig
+   schnell genug war. Das erklärt „funktioniert nach dem zehnten Mal" exakt.
+2. `captureFailed` wurde an drei Stellen gesetzt und **nirgends gerendert**. Jeder
+   Fehlschlag — auch eine abgelehnte Berechtigung — endete in vollkommener Stille.
+3. `completePhotoQuest()` ohne Foto ließ den ganzen Beweis-Abschnitt verschwinden
+   (`photoUri` undefiniert → `null`), statt zu bestätigen. Wirkung ohne Rückmeldung
+   ist von Wirkungslosigkeit nicht zu unterscheiden.
+
+**Regel:** Ein Fehlerzustand, der gesetzt aber nicht gerendert wird, ist kein
+Fehlerzustand, sondern ein Bug. Jeder `catch` und jeder Ablehnungspfad braucht einen
+sichtbaren Satz. Und: ein fehlgeschlagener Versuch darf nie den Zustand zurücksetzen,
+den der Benutzer für den nächsten Versuch braucht.
+
+**Verallgemeinerung:** `tsc` und `expo export` beweisen Typen und Auflösbarkeit, nie
+Verhalten. Alles, was asynchron ist — Berechtigungen, Hardware-Initialisierung,
+Aufnahme — ist ohne Gerät unbelegt. Solche Pfade beim Schreiben mit sichtbarer
+Rückmeldung ausstatten, statt auf den Gerätetest zu hoffen.
+
+**Zweite Lehre aus derselben Meldung:** `HapticButton` legt das übergebene `style` auf
+die **innere** `Animated.View`, nicht auf das `Pressable`. `alignSelf: 'flex-start'`
+dort macht den sichtbaren Knopf schmal, während die Trefferfläche über die volle Breite
+liegt — sichtbarer Knopf und Trefferfläche gehen auseinander. Layout-Ausrichtung gehört
+an die Aufrufstelle um den Knopf herum, nicht in seine `style`-Prop.
+
+## `transform: undefined` stürzt den Dev-Build ab
+
+`[TypeError: Cannot read property 'forEach' of null]` beim Loslassen einer Karte,
+gemeldet an `BrutSurface.tsx:80`.
+
+Ursache liegt in der Fabric-Prop-Diffung, nicht bei uns sichtbar:
+`ReactNativeAttributePayload.diffProperties` macht aus einem `undefined` gewordenen
+Style-Wert erst `null` und ruft dann `attributeConfig.process(null)` —
+für `transform` also `processTransform(null)`. Das ruft unter `__DEV__`
+`_validateTransforms(null)` → `null.forEach`. Nur im Debug-Build; im Release gäbe
+`processTransform` still `null` zurück.
+
+`BrutSurface` schaltete `transform` zwischen einem Array (gedrückt) und `undefined`
+(Ruhe) um — genau dieser Übergang. Ausgelöst hat ihn jeder Tipp auf eine Quest-Kachel.
+
+**Regel:** Eine Style-Eigenschaft mit eigenem `process` — `transform`,
+`transformOrigin`, `fontVariant`, `aspectRatio`, `shadowOffset` — nie zwischen Wert und
+`undefined` umschalten. Immer dieselbe Form ausliefern und stattdessen die Zahlen
+variieren: `transform: [{ translateX: pressed ? offset : 0 }]`.

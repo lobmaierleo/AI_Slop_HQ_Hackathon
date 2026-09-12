@@ -1,97 +1,90 @@
-# AI SLOPPY — Neuimplementierung nach docs/spec.md
+# Stand 12.09.2026 — Tag 2
 
-Stand: 11.09.2026. Plan: `~/.claude/plans/wir-bauen-die-app-harmonic-fairy.md`
+**Feature-Freeze heute 13:00.** Danach nur noch Pitch und Stabilisierung.
 
-## Wave 0 — Fundament (Kontrakt)
+## Offen
 
-- [x] `app/theme/colors.ts` — THEME nach Spec §3 (primary #FF5C00, radius.lg 28)
-- [x] `app/data/quests.json` — 5 Foto-Quests + 6 Trivia, echte Linz-Daten
-- [x] `app/state/useGameStore.ts` — React Context, TEAMS, Actions
-- [x] `app/components/HapticButton.tsx` — Haptik + scale(0.96)
-- [x] `npx tsc --noEmit` auf dem Fundament: sauber
+- [ ] **Gerätetest des Foto-Flows.** Der Subfenster-Umbau vom 12.09. ist nur durch `tsc`
+      belegt. Kamera, Berechtigung, Auslöser und „Ohne Foto bestätigen" sind asynchron und
+      damit ohne Gerät unbewiesen. `npx expo run:ios --device`
+- [ ] **Ungeklärt: `TypeError: Cannot read property 'forEach' of null`** auf dem Karten-Tab,
+      Stack `BrutSurface` ← `MapLegend`. Aus einem Debug-Lauf vom 11.09., also aus Code, den
+      es nicht mehr gibt. Ausgeschlossen sind: fehlende Schatten-Tokens, ungültige
+      Symbolnamen, unerlaubtes `MapView`-Kind. `MapFilterBar` baut dieselbe Struktur nach —
+      der Fehler kann also live sein. Beim Gerätetest gezielt den Karten-Tab beobachten.
+- [ ] **Release-Build für die Vorführung.**
+      `npx expo run:ios --device --configuration Release` — ein Debug-Build hängt an Metro
+      und ist ohne den Rechner tot.
+- [ ] **Pitch.** `docs/pitch.md` gegen den tatsächlichen Stand der App durchgehen.
 
-## Wave 1 — drei parallele Subagenten
+## Bekannte Restposten (bewusst offen gelassen)
 
-- [x] A: `components/LiquidTabBar.tsx`, `app/(tabs)/_layout.tsx`, `app/_layout.tsx`, `app/index.tsx`
-- [x] B: `components/StatCard.tsx`, `app/(tabs)/index.tsx`
-- [x] C: `components/PhotoQuestCard.tsx`, `components/FactOrSlopCard.tsx`, `app/(tabs)/quests.tsx`
-
-## Wave 2 — Verifikation
-
-- [x] `npx tsc --noEmit` über das Gesamtprojekt — fehlerfrei
-- [x] `npx expo export -p web` — 791 Module, 1,2 MB, fehlerfrei
-- [x] Dev-Server auf :8081 antwortet mit 200, Bundle 4,0 MB
-- [x] Spec-Checkliste: genau 2 Tabs, keine Sub-Routen, kein Absatz > 2 Zeilen,
-      jede interaktive Fläche mit Haptik + scale(0.96)
-
-## Datengrundlage (verifiziert gegen die Rohdaten)
-
-| Quelle | Eintrag |
-|---|---|
-| `data/linz/trinkbrunnen/Trinkbrunnen.csv` | TB74 Hauptplatz, TB77 Volksgarten, TB27 Donaupark, BoP03 Promenade |
-| `data/linz/baumkataster/Baumkataster.csv` | #049 Linde 27 m, #086 Winter-Linde 26 m |
-| `data/festival/ars-festival-2026.json` | „Glitch & Leak: Overflowing Bodies in Public Spaces" existiert |
-| `data/linz/baumkataster/README.md` | 27.004 Bäume — bestätigt Trivia t3 |
-
-## Entscheidungen
-
-- State als React Context statt zustand — spart eine Dependency, Spec erlaubt beides.
-- Animationen über RN-Core `Animated` statt Reanimated — kein Babel-/Worklets-Risiko.
-- Icons als Emoji — `@expo/vector-icons` ist nicht installiert, `expo-symbols` bricht auf Web.
-- Foto-Scan als Mock ohne `expo-image-picker` — Spec §7.2 fordert genau diesen Fallback,
-  eine native Dependency hätte einen iOS-Prebuild erzwungen.
-
-## Review
-
-Umgesetzt in drei Wellen: Fundament (Kontrakt) von Hand, danach drei parallele Sonnet-Agenten
-auf disjunkten Dateien, zuletzt Verifikation.
-
-Nachgezogen nach dem Agentenlauf: elf Inline-Hex-Werte (`#FFFFFF`, `#ECECEF`) verstießen gegen
-die Projektregel und laufen jetzt über die neuen Tokens `THEME.colors.onAccent` und
-`THEME.colors.track`.
-
-Belege:
-- `npx tsc --noEmit` — keine Ausgabe, Exit 0
-- `npx expo export -p web` — 791 Module gebündelt
-- `curl localhost:8081` — HTTP 200, Metro-Bundle 4,0 MB nach der Token-Umstellung
-- Genau 2 `Tabs.Screen`, keine Sub-Routen unter `app/(tabs)/`
-- Kein UI-String über 90 Zeichen
-- Einziges rohes `Pressable` steckt in `LiquidTabBar.tsx` und feuert dort `Haptics.selectionAsync()`;
-  alles andere läuft über `HapticButton` mit `scale(0.96)`
-
-Offen: Der Foto-Scan ist ein Mock ohne `expo-image-picker` (Spec §7.2 fordert genau diesen
-Fallback). Echte Kamera wäre nachrüstbar, erzwingt aber einen iOS-Prebuild.
+- Fotos liegen als `file://`-URI im Cache. Über einen OS-Cache-Lauf hinweg kann ein Bild
+  verschwinden; der Ort bleibt erledigt. Für die Demo unkritisch.
+- `app/components/LiquidTabBar.tsx` heißt noch nach der Liquid-Glass-Phase, ist aber längst
+  neobrutalistisch umgebaut. Nur der Name ist ein Rest. **Nicht vor dem Freeze umbenennen.**
+- `app/data/leaderboard.json` hat kein Build-Skript, ist von Hand gepflegt.
 
 ---
 
-## Umbau zu SELBERDENKEN (11.09.2026)
+# Erledigt 11.–12.09.2026
 
-„AI SLOPPY" ist weg. Das Narrativ ist umgedreht: **Du bist die Intelligenz.** Statt eine KI zu
-fragen, gehst du hin, findest den Fakt in den echten Daten und sparst das Kühlwasser, das die
-Abfrage verdampft hätte. Jeder gefundene Ort wird ein Neuron in deinem Netz.
+## Nachrüstung Quest-Detail, Karte, Netz
 
-Entfernt: Firmen-Teams, Team-Auswahl, Leaderboard, `slopTokens`, `agiProgress`, `hallucination`,
-alle Emojis, das Orange, `app/assets/logos/`, `app/assets/data/slop_fixtures.json`.
+Quests waren eine Liste mit Knopf. Jetzt öffnet jede Quest ein Subfenster mit Karte, Kamera,
+Hintergrundwissen und — an ausgewählten Orten — einer Runde Fakt oder Slop. Fakt oder Slop ist
+als eigener Bereich verschwunden.
 
-Neu:
-- `scripts/build_graph.py` → `app/data/graph.json` (23 Knoten, 42 Kanten). Positionen sind die
-  echten Linzer Koordinaten, normalisiert und relaxiert — Karte und Netz-Tab zeigen dieselbe Stadt.
-- `app/components/GlassSurface.tsx` — die eine Glasfläche, auf der jede Karte, Leiste und Pille sitzt.
-- `app/components/Symbol.tsx` — SF Symbols statt Emojis.
-- `app/components/SynapseGraph.tsx` + `app/app/(tabs)/network.tsx` — „Mein Netz" ersetzt „Ranking".
-- Karte: dunkel, Nebel des Unwissens (`Polygon` mit `holes`), Synapsen als `Polyline`, Nähe-Radar
-  über `expo-location`.
-- Persistenz über AsyncStorage (`selberdenken.v1`), Reset mit Rückfrage.
+- **Quests sind Orte mit Subfenster.** `QuestDetailSheet` als `pageSheet`: Kopf mit
+  Kategoriezeichen, Karte auf den Ort gezoomt, Kamera, Wissenstext, Kennzahlen, bei manchen
+  Orten Fakt oder Slop, Fußzeile mit Datenquelle und Wassergewinn.
+- **Man lernt etwas.** Je Ort ein handgeschriebener Absatz `info` ohne jede Zahl, dazu zwei
+  bis fünf `stats`, die `build_quests.py` aus der Quellzeile rechnet. Die Trennung ist
+  Absicht: Prosa veraltet nicht, Zahlen driften nicht, weil sie niemand abtippt. Neue Joins:
+  Hotspot-Nutzung je Standort, Festivalprojekte je Spielort über den rekursiven
+  `Linked Child`-Gang (Projekte hängen an Räumen, nicht an Gebäuden — vorher kamen Nordico 1
+  und Kunstuni 0 heraus, jetzt OK Linz 27/24 und AEC 137/257), Höhenrang eines Baums über alle
+  27.004 Bäume.
+- **Fakt oder Slop** hängt an 11 der 23 Orte, 16 Aussagen, thematisch am jeweiligen Datensatz.
+  Der Build bricht ab, wenn eine Aussage doppelt oder gar nicht vergeben ist. Sichtbar erst
+  nach dem Besuch.
+- **Kartenfilter nach Kategorie statt nach Datenquelle.** „Orte / Spielorte / Brunnen" war
+  eine Beschreibung unserer Dateien, keine Frage, die ein Mensch stellt. Jetzt die fünf
+  Kategorien aus `lib/categories.ts`, und eine aktive Kategorie blendet den ganzen Linzer
+  Datensatz dahinter ein. Der Filter heißt damit „zeig mir alles dieser Art in der Stadt,
+  meine Orte darin" — die strukturelle Verschränkung, auf die es beim Voting ankommt.
+- **Orte auf der Karte unterscheidbar.** Die Kategorieform trägt beide Zustände; Tipp auf
+  einen Marker öffnet dasselbe Sheet wie die Liste.
+- **Mein Netz zeichnet nichts vor.** Nur entdeckte Knoten und aktive Kanten, Leerzustand
+  statt Geisternetz, Pinch bis 4×, Doppeltipp setzt zurück.
 
-Die Fakten werden in `build_quests.py` aus CSV-Spalten per f-String erzeugt, nicht getextet — sie
-können deshalb nicht halluziniert sein. Der Tippfehler „gegnüber" in p5 steht so im Original-
-datensatz der Stadt Linz und bleibt bewusst stehen.
+## Abgeschnittene Knopfbeschriftungen
 
-Belege:
-- `npx tsc --noEmit` — keine Ausgabe, Exit 0
-- `npx expo export --platform ios` — 1.655 Module, Bundle 3,8 MB, keine verwaisten Assets
-- `grep` auf Emojis, `ClosedAI|Antithropic|Grek|ShallowSeek|slopTokens|agiProgress|hallucination`,
-  `leaderboard`, `emoji` — jeweils null Treffer in `app/`
+Ursache war nicht der einzelne Knopf: `BrutSurface` polstert mit `spacing.md`, und acht
+Aufrufstellen setzten wortgleich `height: 50` in die `contentStyle`. `BrutButton` ersetzt alle
+acht. Regel in `CLAUDE.md` und `DESIGN.md`, Ursachenanalyse in `lessons.md`.
 
-Offen (nur am echten iPhone prüfbar): Windungsrichtung der Nebel-Löcher, Standort-Freigabe für den
-Radar, Haptik. Beides scheitert im Simulator lautlos.
+## Foto-Flow repariert (12.09.)
+
+Drei Fehler derselben Art — stille Fehlerzweige:
+
+1. Kein `onCameraReady`-Zustand; `takePictureAsync` warf, und der `catch`-Zweig schloss die
+   Kamera. Jeder zu frühe Tipp warf zurück an den Anfang.
+2. `captureFailed` wurde gesetzt und nirgends gerendert. Jeder Fehlschlag endete stumm.
+3. Bestätigen ohne Foto ließ den Beweis-Abschnitt kommentarlos verschwinden.
+
+Dazu: Kamera als Vollbild statt als 260px-Fenster im Fließtext, und der Zweitknopf auf volle
+Breite (`alignSelf` saß in `HapticButton` auf der inneren Fläche, die Trefferfläche lag
+darüber voll breit).
+
+## Aufräumen (12.09.)
+
+Gelöscht: `docs/spec.md` (beschrieb „AI SLOPPY" mit Team-Carousel, Liquid-Glass-Tableiste und
+Fakt oder Slop als Quests-Bereich — nichts davon existiert noch), `scripts/build_app_data.py`
+(schrieb nach `app/public/`, Next.js-Zeit), `scripts/build_logos.py` (las aus einem Pfad auf
+einem fremden Rechner, Logos sind seit f9e52d9 raus), `scripts/generate_slop_data.py` (von
+`build_quests.py` abgelöst), `app/dist/` und das leere `app/assets/`.
+
+Neu geschrieben: `README.md` (enthielt `npm run dev` auf localhost:3000). Umgestellt:
+`DESIGN.md` — der verbindliche Neobrutalismus-Teil steht jetzt oben, die Apple-Analyse
+darunter als ausdrücklich historische Referenz.

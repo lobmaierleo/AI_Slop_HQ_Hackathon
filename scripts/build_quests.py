@@ -540,6 +540,261 @@ TRIVIA = [
 
 
 # --------------------------------------------------------------------------
+# Wissensschicht: was man an diesem Ort lernt
+# --------------------------------------------------------------------------
+
+# Zusatzquellen, die nur die Detailansicht braucht.
+hotspot_usage = read_csv(LINZ / "hotspots" / "Hotspot-Nutzung.csv")
+festival = json.loads((ROOT / "data" / "festival" / "ars-festival-2026.json").read_text())
+
+LOC_BY_ID = {loc["id"]: loc for loc in festival["locations"]}
+
+USAGE_BY_SPOT: dict[str, int] = {}
+USAGE_YEARS: set[str] = set()
+for _row in hotspot_usage:
+    USAGE_YEARS.add(_row["jahr"])
+    USAGE_BY_SPOT[_row["standort_id"]] = (
+        USAGE_BY_SPOT.get(_row["standort_id"], 0) + int(_row["anzahl_clients"] or 0)
+    )
+
+# Projekte haengen im Export am Raum, nicht am Gebaeude. Ein Spielort zaehlt
+# deshalb nur mit seinen Kindern -- sonst steht am Ars Electronica Center eine
+# Eins, waehrend 137 Projekte darin stattfinden.
+PROJECTS_AT: dict[str, int] = {}
+SLOTS_AT: dict[str, int] = {}
+for _p in festival["projects"]:
+    for _lid in _p.get("Linked Location") or ():
+        PROJECTS_AT[_lid] = PROJECTS_AT.get(_lid, 0) + 1
+        SLOTS_AT[_lid] = SLOTS_AT.get(_lid, 0) + len(_p.get("calendar_ids") or ())
+
+
+def location_family(loc_id: str, seen: set[str] | None = None) -> set[str]:
+    """Ein Spielort und alle Raeume darunter, zyklensicher."""
+    seen = set() if seen is None else seen
+    if loc_id in seen:
+        return seen
+    seen.add(loc_id)
+    for child in (LOC_BY_ID.get(loc_id, {}).get("Linked Child") or ()):
+        location_family(child, seen)
+    return seen
+
+
+# Kennzahlen der Datensaetze, einmal beim Build gezaehlt statt im Text behauptet.
+TREE_TOTAL = len(trees)
+TREE_SPECIES = len({r["NameDeutsch"] for r in trees if r["NameDeutsch"]})
+FOUNTAIN_DRINKABLE = sum(1 for r in fountains if r["brunnenart"] == "Trinkbrunnen")
+FOUNTAIN_TOTAL = len(fountains)
+DEFI_TOTAL = len(defis)
+HOTSPOT_TOTAL = len(hotspots)
+FESTIVAL_LOCATIONS = len(festival["locations"])
+FESTIVAL_PROJECTS = len(festival["projects"])
+
+
+def _int(value: str) -> int | None:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _de(value: int) -> str:
+    """Tausenderpunkt wie im Deutschen: 27004 -> 27.004."""
+    return f"{value:,}".replace(",", ".")
+
+
+def stats_for(kind: str, row: dict, anchor: dict) -> list[dict]:
+    """Die Zahlen der Detailansicht, ausnahmslos aus der Quellzeile gelesen.
+
+    Anders als `fact_for`, das einen Satz baut, liefert das hier eine Tabelle:
+    Label und Wert getrennt, damit die App sie setzen kann, ohne im Text zu
+    suchen. Leere Spalten fallen weg statt als Strich zu erscheinen.
+    """
+    out: list[tuple[str, str]] = []
+
+    if kind == "fountain":
+        out += [
+            ("Bauart", _val(row, "bauart")),
+            ("Aufstellungsort", _val(row, "aufstellungsort")),
+            ("Betriebszeit", _val(row, "betriebszeit")),
+            ("Trinkwasser", "ja" if row["trinkwasser"] == "true" else ""),
+            ("Trinkbrunnen in Linz", f"{FOUNTAIN_DRINKABLE} von {FOUNTAIN_TOTAL} Anlagen"),
+        ]
+    elif kind == "tree":
+        hoehe, krone = _val(row, "Hoehe"), _val(row, "Schirmdurchmesser")
+        umfang = _val(row, "Stammumfang")
+        gattung, art = _val(row, "Gattung"), _val(row, "Art")
+        hoehe_val = _int(hoehe)
+        taller = (
+            sum(1 for r in trees if (_int(r["Hoehe"]) or 0) > hoehe_val)
+            if hoehe_val
+            else None
+        )
+        out += [
+            ("Botanisch", f"{gattung} {art}".strip()),
+            ("Höhe", f"{hoehe} m" if hoehe else ""),
+            ("Krone", f"{krone} m" if krone else ""),
+            ("Stammumfang", f"{umfang} cm" if umfang else ""),
+            (
+                "Höher in Linz",
+                f"{_de(taller)} von {_de(TREE_TOTAL)} Bäumen" if taller is not None else "",
+            ),
+        ]
+    elif kind == "hotspot":
+        clients = USAGE_BY_SPOT.get(row["id"])
+        year = max(USAGE_YEARS) if USAGE_YEARS else ""
+        out += [
+            ("Adresse", _val(row, "strasse")),
+            ("In Betrieb seit", _val(row, "start_jahr")),
+            (
+                f"Verbindungen {year}",
+                _de(clients) if clients else "",
+            ),
+            ("Hotspots in Linz", f"{HOTSPOT_TOTAL} Standorte"),
+        ]
+    elif kind == "defi":
+        out += [
+            ("Betreiber", _val(row, "FIRMA")),
+            ("Gerät", _val(row, "Marke/Hersteller")),
+            ("Genauer Standort", _val(row, "Standort")),
+            ("Geräte in Linz", f"{DEFI_TOTAL} kartiert"),
+        ]
+    elif kind == "venue":
+        loc = unique(VENUE_BY_NAME, anchor["name"], "Spielort")
+        family = location_family(loc["id"])
+        rooms = len(family) - 1
+        projects = sum(PROJECTS_AT.get(i, 0) for i in family)
+        slots = sum(SLOTS_AT.get(i, 0) for i in family)
+        area = (LOC_BY_ID.get(loc["id"], {}).get("Area") or "").strip()
+        out += [
+            ("Festivalbereich", area.title() if area else ""),
+            ("Räume im Export", str(rooms) if rooms else ""),
+            ("Projekte hier", str(projects) if projects else ""),
+            ("Programmslots", str(slots) if slots else ""),
+            ("Orte im Export", f"{FESTIVAL_LOCATIONS} insgesamt"),
+        ]
+    else:
+        die(f"kein Kennzahlen-Bauplan für Ankerart {kind!r}")
+
+    return [{"label": label, "value": value} for label, value in out if value]
+
+
+# Der Wissenstext der Detailansicht. Bewusst ohne Zahlenmaterial -- Zahlen
+# stehen in `stats` und werden beim Build aus der Quellzeile gezogen, damit
+# sie nicht veralten koennen. Hier steht nur, warum Ort und Datensatz
+# zusammengehoeren: das, was die Maschine einem sonst zusammenfassen wuerde.
+INFO = {
+    "p1": "Die Stadt führt jede öffentliche Brunnenanlage mit Bauart, Aufstellungsort und "
+          "Betriebszeit. Nur ein Teil davon gibt Trinkwasser ab, der Rest ist Zierbrunnen — "
+          "am Becken selbst steht das nirgends, es steht in einer Tabelle. Am Hauptplatz "
+          "treffen sich zwei Linzer Datensätze auf wenigen Metern: der meistgenutzte "
+          "WLAN-Hotspot der Stadt und ein Auslauf, an dem Wasser gratis ist.",
+    "p2": "Der Platz trägt den Namen von Herbert Bayer, dem oberösterreichischen "
+          "Bauhaus-Grafiker, der die serifenlose Kleinschreibung zur Haltung erklärte. "
+          "Linz veröffentlicht seine Straßennamen als Datensatz samt Benennungsanlass — "
+          "und die Verteilung darin ist selbst eine Aussage darüber, wessen Namen eine "
+          "Stadt in den Stadtplan schreibt.",
+    "p3": "Brunnen an Spielplätzen führt der Kataster gesondert, weil an ihnen gespielt "
+          "und getrunken wird. Der Datensatz unterscheidet dafür Brunnenart und Bauart: "
+          "ob überhaupt Trinkwasser fließt, und in welcher Form es herauskommt. Beides "
+          "lässt sich nur vor Ort gegenprüfen.",
+    "p4": "Der Park am Hessenplatz liegt im Gründerzeitviertel, wo Linz am dichtesten bebaut "
+          "ist — öffentliches Wasser ist hier keine Zierde, sondern Infrastruktur. Der "
+          "Kataster hält fest, in welchem Zeitraum eine Anlage läuft: Brunnen sind nicht "
+          "ganzjährig in Betrieb, im Winter werden die Wasserzähler ausgebaut.",
+    "p5": "Der Stadtpark gehört zum Grüngürtel entlang der Bahn und taucht gleich in zwei "
+          "Katastern auf: als Standort einer Brunnenanlage und mit seinem Baumbestand. "
+          "Genau solche Überlappungen machen offene Daten brauchbar — ein Ort, mehrere "
+          "unabhängig geführte Tabellen, die sich gegenseitig prüfen lassen.",
+    "p6": "Der Volksgarten ist die älteste öffentliche Parkanlage der Stadt und trägt einen "
+          "Wasserspielplatz, also Wasser, das ausdrücklich zum Anfassen da ist. Während "
+          "Rechenzentren Kühlwasser verdampfen, das niemand je sieht, ist hier jeder Liter "
+          "öffentlich, sichtbar und kostenlos.",
+    "p7": "Der Donaupark zieht sich als Band zwischen Lände und Fluss und ist der Teil von "
+          "Linz, in dem Festivalbetrieb und Alltagsstadt am dichtesten aneinanderliegen. "
+          "Der Brunnen dahinter ist ein Eintrag in einer Tabelle, die sonst niemand liest — "
+          "bis man ihn braucht.",
+    "p8": "Der Linzer Baumkataster ist einer der ausführlichsten offenen Datensätze der "
+          "Stadt: jeder Baum mit Gattung, Art, Höhe, Kronendurchmesser und Stammumfang. "
+          "Weiß-Tannen werden in Mitteleuropa höher als jede andere heimische Baumart, und "
+          "dieser Bestand steht mitten im Festivalgebiet — gewachsen über Jahrzehnte, "
+          "vermessen in einer Zeile.",
+    "p9": "Platanen werfen ihre Rinde in Platten ab; darunter kommt helles Holz zum "
+          "Vorschein, weshalb der Stamm gescheckt aussieht. Der Kataster nennt dafür den "
+          "Stammumfang in Zentimetern — gemessen, nicht geschätzt. Wer den Baum umrundet, "
+          "hat die Zahl vor dem Nachlesen im Gefühl.",
+    "p10": "Die Rosskastanie stammt vom Balkan und steht in Mitteleuropa fast ausschließlich "
+           "dort, wo Menschen sie gepflanzt haben — Alleen, Gasthausgärten, Parks. Sie ist "
+           "damit ein Datenpunkt über Stadtgeschichte, nicht über Natur.",
+    "p11": "Linden gehören zu den häufigsten Straßenbäumen der Stadt, und das ist im Kataster "
+           "nachzählbar. Dass ein einzelner Baum nichts Besonderes ist, ist hier die Pointe: "
+           "erst die Menge macht den Bestand — und erst der Datensatz macht die Menge "
+           "sichtbar.",
+    "p12": "Der Stadtpark trägt alten Bestand, den der Kataster mit Höhe und "
+           "Schirmdurchmesser führt. Der Schirmdurchmesser ist die Zahl, die im Sommer "
+           "zählt: er bestimmt, wie viel Fläche beschattet wird und wie stark der Boden "
+           "darunter abkühlt.",
+    "p13": "Der Tummelplatz war im 19. Jahrhundert Exerzierfläche, heute ist er Park — die "
+           "Eichen darauf sind älter als jede Nutzung, die man ihnen zuschreibt. "
+           "Stiel-Eichen gehören zu den langlebigsten Bäumen Mitteleuropas.",
+    "p14": "Das Nordico ist das Stadtmuseum von Linz und im Festivalexport als eigener "
+           "Spielort geführt. Der Export ordnet jeden Ort einem Festivalbereich zu und "
+           "verschachtelt Gebäude und Räume — deshalb hängen Projekte selten am Haus, "
+           "sondern am Saal darin.",
+    "p15": "Das OK ist seit Jahrzehnten das Haus für Medienkunst in Linz und während des "
+           "Festivals einer der dichtesten Spielorte überhaupt. Im Export ist es kein "
+           "einzelner Eintrag, sondern eine Familie aus Gebäude und Räumen, über die sich "
+           "Projekte und Programmslots verteilen.",
+    "p16": "An der Kunstuniversität entsteht ein Teil dessen, was anderswo als "
+           "Trainingsmaterial endet. Der Festivalexport führt den Ort mit Adresse, Bereich "
+           "und Typ, sagt aber nichts darüber, was drinnen passiert — diese Lücke schließt "
+           "nur, wer hingeht.",
+    "p17": "Das Francisco Carolinum ist das älteste Museum Oberösterreichs und zeigt während "
+           "des Festivals zeitgenössische Medienkunst in historischen Räumen. Im Export "
+           "hängt daran eine der größeren Programmfamilien des OK Quarter.",
+    "p18": "Die Stadt veröffentlicht die Standorte ihrer öffentlich zugänglichen "
+           "Defibrillatoren mit Betreiber, Gerätetyp und Stockwerk. Dass ein Festivalort "
+           "zugleich ein Eintrag in diesem Datensatz ist, sieht man erst, wenn man beide "
+           "Tabellen übereinanderlegt — und im Ernstfall zählt genau das.",
+    "p19": "Ein Defibrillator ist nur so gut wie das Wissen darum, wo er hängt. Der Datensatz "
+           "nennt das Stockwerk und den Raum, aber keine Öffnungszeit — ob das Gerät nachts "
+           "erreichbar ist, steht nirgends. Solche Lücken findet man nur vor Ort.",
+    "p20": "Der Taubenmarkt ist einer der ältesten Hotspot-Standorte der Stadt und meldet "
+           "seine Nutzung monatlich an den offenen Datensatz. Gezählt werden Verbindungen, "
+           "nicht Menschen — wer zweimal am Tag vorbeigeht, steht zweimal in der Statistik.",
+    "p21": "Der Hauptplatz-Hotspot ist der meistgenutzte der Stadt, und das lässt sich in der "
+           "Nutzungstabelle nachzählen. Das freie Netz der Stadt und die Frage, wie viel "
+           "Wasser eine KI-Abfrage kostet, hängen direkt zusammen: die Verbindung ist "
+           "gratis, die Antwort dahinter nicht.",
+    "p22": "Der Bauernberg ist die Geländekante zwischen Innenstadt und Froschberg, und sein "
+           "Baumbestand ist entsprechend alt. Der Kataster lässt sich nach Höhe sortieren — "
+           "dieser Baum steht dabei sehr weit vorn, und das ist nachgerechnet, nicht "
+           "behauptet.",
+    "p23": "Im Volksgarten stehen Bäume, die älter sind als die Anlage in ihrer heutigen "
+           "Form. Der Kataster führt sie mit denselben vier Maßen wie jeden Straßenbaum am "
+           "Stadtrand — die Tabelle macht keinen Unterschied zwischen Schaustück und "
+           "Bestand.",
+}
+
+# Fakt oder Slop wird nicht mehr am Stueck gespielt, sondern haengt an
+# einzelnen Orten. Die Zuordnung ist thematisch: die Aussage gehoert zu dem
+# Datensatz, in dem man gerade steht. Zwoelf der 23 Orte haben keine -- sonst
+# wird aus der Belohnung eine Pflichtuebung.
+TRIVIA_FOR = {
+    "p1": ["t8", "t9"],
+    "p2": ["t10"],
+    "p4": ["t13"],
+    "p6": ["t12"],
+    "p7": ["t14"],
+    "p8": ["t1", "t3"],
+    "p11": ["t2"],
+    "p14": ["t5", "t16"],
+    "p15": ["t4", "t7"],
+    "p17": ["t6"],
+    "p21": ["t11", "t15"],
+}
+
+
+# --------------------------------------------------------------------------
 # Aufloesen und schreiben
 # --------------------------------------------------------------------------
 
@@ -561,6 +816,13 @@ def main() -> None:
         for field, radius, claim in quest.get("records", ()):
             assert_no_larger(anchor, field, radius, f"{quest['id']} ({claim})")
 
+        info = INFO.get(quest["id"])
+        if not info:
+            die(f"{quest['id']}: kein Wissenstext in INFO")
+        stats = stats_for(anchor["kind"], row, anchor)
+        if len(stats) < 2:
+            die(f"{quest['id']}: Datensatz gibt nur {len(stats)} Kennzahlen her")
+
         photo_out.append({
             "id": quest["id"],
             "type": quest["type"],
@@ -571,6 +833,9 @@ def main() -> None:
             "desc": quest["desc"],
             "teaser": quest["teaser"],
             "fact": fact,
+            "info": info,
+            "stats": stats,
+            "triviaIds": TRIVIA_FOR.get(quest["id"], []),
             "waterLiters": quest["waterLiters"],
             "lat": round(lat, 6),
             "lon": round(lon, 6),
@@ -589,6 +854,23 @@ def main() -> None:
             "explanation": item["explanation"],
         })
 
+    # Jede Zuordnung muss auf eine Aussage zeigen, die es auch gibt, und jede
+    # Aussage genau einmal verwendet werden -- sonst liegt Inhalt brach.
+    trivia_ids = {t["id"] for t in trivia_out}
+    used: list[str] = []
+    for quest_id, ids in TRIVIA_FOR.items():
+        if quest_id not in seen_ids:
+            die(f"TRIVIA_FOR verweist auf unbekannte Quest {quest_id}")
+        for trivia_id in ids:
+            if trivia_id not in trivia_ids:
+                die(f"{quest_id}: Aussage {trivia_id} existiert nicht")
+            used.append(trivia_id)
+    if len(used) != len(set(used)):
+        die("eine Aussage haengt an mehreren Orten")
+    unused = trivia_ids - set(used)
+    if unused:
+        die(f"nicht zugeordnete Aussagen: {sorted(unused)}")
+
     facts = sum(1 for t in trivia_out if t["isFact"])
     OUT.write_text(
         json.dumps({"photoQuests": photo_out, "triviaQuests": trivia_out},
@@ -597,8 +879,10 @@ def main() -> None:
     )
 
     by_type = Counter(q["type"] for q in photo_out)
+    with_trivia = sum(1 for q in photo_out if q["triviaIds"])
     print(f"{OUT.relative_to(ROOT)}: {len(photo_out)} Foto-Quests {dict(by_type)}, "
-          f"{len(trivia_out)} Trivia ({facts} Fakt / {len(trivia_out) - facts} Slop)")
+          f"{len(trivia_out)} Trivia ({facts} Fakt / {len(trivia_out) - facts} Slop) "
+          f"an {with_trivia} Orten")
 
 
 if __name__ == "__main__":

@@ -4,20 +4,35 @@ Arbeitsrepository für den AI Hackathon am **11.–12. September 2026** in der G
 Thema: *NEGOTIATING HUMANITY*. Aufgabe: den Festival-Programmdatensatz mit Open Data der Stadt
 Linz verbinden. Gewertet wird per Community Voting.
 
+Das Ergebnis ist **SELBERDENKEN**, eine native iOS-App unter `app/` (Expo SDK 57, React Native,
+Expo Router). Sie läuft beim Voting auf einem Vorführ-iPhone, das herumgereicht wird — es gibt
+bewusst keinen Web-Build, keine öffentliche URL und keinen QR-Code.
+
 ## Einstieg
 
 ```bash
-git clone <repo> && cd AI_Slop_HQ_Hackathon
-python3 scripts/build_summary.py      # Datenübersicht erzeugen
-cd app && npm install && npm run dev  # localhost:3000
+python3 scripts/build_summary.py                    # data/SUMMARY.md erzeugen
+python3 scripts/build_quests.py                     # app/data/quests.json aus Realdaten
+python3 scripts/build_graph.py                      # app/data/graph.json (Synapsen-Netz)
+python3 scripts/build_places.py                     # app/data/places.json (Kartenkontext)
+
+cd app
+npx tsc --noEmit                                    # Typprüfung
+npx expo start                                      # schneller Blick über Expo Go
+npx expo run:ios --device                           # Debug-Build aufs iPhone, mit Logausgabe
+npx expo run:ios --device --configuration Release   # der Stand für die Vorführung
 ```
+
+Für die Vorführung zählt nur der letzte Befehl: ein Debug-Build lädt sein JavaScript bei jedem
+Start von Metro und ist ohne den Rechner tot.
 
 Danach in dieser Reihenfolge lesen:
 
-1. [`docs/briefing.md`](docs/briefing.md) — wie der Bewerb funktioniert und was die Konkurrenz baut
-2. [`docs/ideas.md`](docs/ideas.md) — 29 Ideen, bewertet nach Aufwand, Risiko und Voting-Chance
-3. [`docs/datasets.md`](docs/datasets.md) — was in den Daten steckt und welche Joins halten
-4. [`tasks/todo.md`](tasks/todo.md) — Zwei-Tages-Plan
+1. [`CLAUDE.md`](CLAUDE.md) — die Regeln, aus denen alles folgt (= `AGENTS.md` = `GEMINI.md`)
+2. [`DESIGN.md`](DESIGN.md) — verbindlich für alles Sichtbare, der Neobrutalismus-Teil zuerst
+3. [`docs/briefing.md`](docs/briefing.md) — wie der Bewerb funktioniert und was die Konkurrenz baut
+4. [`docs/datasets.md`](docs/datasets.md) — was in den Daten steckt und welche Joins halten
+5. [`tasks/todo.md`](tasks/todo.md) — offener Stand · [`tasks/lessons.md`](tasks/lessons.md) Korrekturen
 
 ## Daten
 
@@ -25,7 +40,8 @@ Danach in dieser Reihenfolge lesen:
   511 Künstler:innen aus 107 Ländern, 156 Orte
 - **Linz:** `data/linz/` — 23 Datensätze, 13 davon mit lokalen Dateien
 
-Übersicht in [`data/SUMMARY.md`](data/SUMMARY.md). Rohdaten nicht in ein Kontextfenster laden.
+Übersicht in [`data/SUMMARY.md`](data/SUMMARY.md). Rohdaten nicht in ein Kontextfenster laden —
+die Projektbeschreibungen allein sind rund 177k Tokens.
 
 ## Agents
 

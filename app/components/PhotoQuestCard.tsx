@@ -1,7 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import type { LayoutChangeEvent } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
@@ -12,11 +9,8 @@ import type { PhotoQuest } from '@/state/useGameStore';
 type Props = {
   quest: PhotoQuest;
   done: boolean;
-  onComplete: (questId: string) => void;
+  onPress: () => void;
 };
-
-const SCAN_DURATION = 1000;
-const VERIFY_DELAY = 600;
 
 /** Deutsches Dezimalkomma, immer mit einer Nachkommastelle: 6.4 -> "6,4 L". */
 function formatLiters(value: number): string {
@@ -24,184 +18,61 @@ function formatLiters(value: number): string {
 }
 
 /**
- * Das Kernstück des Loops: Ort aufsuchen, "vor Ort bestätigen", und als
- * Belohnung den Fakt freischalten, den die KI einem sonst vorgekaut hätte.
- * Der Foto-Beweis bleibt eine Simulation -- kein Kamera-Zugriff --, aber die
- * Scan-Animation soll trotzdem wie eine echte Abgleichung mit offenen Daten
- * wirken, nicht wie ein Kühlkreislauf.
+ * Reine Listenkachel: Plakette, Titel, Ort, ein Teaser oder die kurze
+ * "Entdeckt"-Zeile. Bestaetigt wird nicht mehr hier, sondern im
+ * QuestDetailSheet -- ein Tipp auf die Kachel oeffnet nur noch das Sheet.
  */
-export function PhotoQuestCard({ quest, done, onComplete }: Props) {
-  const [scanning, setScanning] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
-
-  const laserProgress = useRef(new Animated.Value(0)).current;
-  const verifyOpacity = useRef(new Animated.Value(0)).current;
-
-  // Bereits vor dem Neustart erledigte Quests zeigen die Belohnung sofort
-  // (Startwert = Endzustand), damit die Einblend-Animation nicht bei jedem
-  // Scrollen erneut abgespielt wird. Nur ein frischer Abschluss in dieser
-  // Sitzung löst die Animation aus.
-  const revealOpacity = useRef(new Animated.Value(done ? 1 : 0)).current;
-  const revealTranslate = useRef(new Animated.Value(done ? 0 : 10)).current;
-  const wasDone = useRef(done);
-
-  const laserAnim = useRef<Animated.CompositeAnimation | null>(null);
-  const completeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const verifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mounted = useRef(true);
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      if (completeTimer.current) clearTimeout(completeTimer.current);
-      if (verifyTimer.current) clearTimeout(verifyTimer.current);
-      laserAnim.current?.stop();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (done && !wasDone.current) {
-      Animated.parallel([
-        Animated.timing(revealOpacity, {
-          toValue: 1,
-          duration: 420,
-          useNativeDriver: true,
-        }),
-        Animated.spring(revealTranslate, {
-          toValue: 0,
-          useNativeDriver: true,
-          speed: 14,
-          bounciness: 6,
-        }),
-      ]).start();
-    }
-    wasDone.current = done;
-  }, [done, revealOpacity, revealTranslate]);
-
-  const handleContentLayout = (event: LayoutChangeEvent) => {
-    setContentHeight(event.nativeEvent.layout.height);
-  };
-
-  const startScan = () => {
-    if (completeTimer.current) clearTimeout(completeTimer.current);
-    if (verifyTimer.current) clearTimeout(verifyTimer.current);
-    laserAnim.current?.stop();
-
-    setScanning(true);
-    laserProgress.setValue(0);
-    verifyOpacity.setValue(0);
-
-    laserAnim.current = Animated.timing(laserProgress, {
-      toValue: 1,
-      duration: SCAN_DURATION,
-      easing: Easing.inOut(Easing.quad),
-      useNativeDriver: true,
-    });
-    laserAnim.current.start();
-
-    verifyTimer.current = setTimeout(() => {
-      if (!mounted.current) return;
-      Animated.timing(verifyOpacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
-    }, VERIFY_DELAY);
-
-    completeTimer.current = setTimeout(() => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      if (!mounted.current) return;
-      setScanning(false);
-      onComplete(quest.id);
-    }, SCAN_DURATION);
-  };
-
-  const translateY = laserProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, Math.max(contentHeight - 4, 0)],
-  });
-
+export function PhotoQuestCard({ quest, done, onPress }: Props) {
   return (
-    <BrutSurface radius={THEME.radius.md} style={styles.card}>
-      <View onLayout={handleContentLayout}>
-        <View style={styles.header}>
+    <HapticButton
+      haptic="light"
+      pressStyle="push"
+      onPress={onPress}
+      accessibilityLabel={quest.title}
+      style={styles.wrap}
+    >
+      {(pressed) => (
+        <BrutSurface radius={THEME.radius.md} pressed={pressed} contentStyle={styles.card}>
           <View style={[styles.symbolBadge, done && styles.symbolBadgeDone]}>
             <Symbol name={quest.symbol} size={22} color={THEME.colors.ink} />
           </View>
-          <View style={styles.badgeBox}>
-            <Text style={styles.badgeText}>{quest.badge}</Text>
-          </View>
-        </View>
 
-        <Text style={styles.title}>{quest.title}</Text>
-        <Text style={styles.location}>{quest.location}</Text>
-        <Text style={styles.desc}>{quest.desc}</Text>
-
-        {!done ? (
-          <HapticButton
-            haptic="medium"
-            pressStyle="push"
-            style={styles.scanButton}
-            onPress={startScan}
-            accessibilityLabel="Vor Ort bestätigen"
-          >
-            {(pressed) => (
-              <BrutSurface
-                tone="primary"
-                pressed={pressed}
-                shadow="sm"
-                radius={THEME.radius.sm}
-                contentStyle={styles.scanButtonFace}
-              >
-                <Text style={styles.scanButtonText}>Vor Ort bestätigen</Text>
-              </BrutSurface>
-            )}
-          </HapticButton>
-        ) : (
-          // Der eigentliche Zahltag: Fakt, Quelle und die gutgeschriebenen
-          // Liter -- der Grund, warum man überhaupt hingegangen ist.
-          <Animated.View
-            style={[
-              styles.reveal,
-              { opacity: revealOpacity, transform: [{ translateY: revealTranslate }] },
-            ]}
-          >
-            <View style={styles.revealLabelRow}>
-              <Symbol name="checkmark.seal.fill" size={14} color={THEME.colors.ink} />
-              <Text style={styles.revealLabel}>Entdeckt</Text>
+          <View style={styles.body}>
+            <View style={styles.badgeBox}>
+              <Text style={styles.badgeText}>{quest.badge}</Text>
             </View>
-            <Text style={styles.factText}>{quest.fact}</Text>
-            <View style={styles.revealFooter}>
-              <Text style={styles.source} numberOfLines={1}>
-                {quest.source}
+            <Text style={styles.title} numberOfLines={1}>
+              {quest.title}
+            </Text>
+            <Text style={styles.location} numberOfLines={1}>
+              {quest.location}
+            </Text>
+            {done ? (
+              <View style={styles.doneRow}>
+                <Symbol name="checkmark.seal.fill" size={13} color={THEME.colors.success} />
+                <Text style={styles.doneText}>
+                  Entdeckt · +{formatLiters(quest.waterLiters)}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.teaser} numberOfLines={2}>
+                {quest.teaser}
               </Text>
-              <Text style={styles.waterGain}>+{formatLiters(quest.waterLiters)}</Text>
-            </View>
-          </Animated.View>
-        )}
-      </View>
-
-      {scanning ? (
-        <View style={styles.overlay} pointerEvents="none">
-          <Animated.View style={[styles.laser, { transform: [{ translateY }] }]} />
-          <View style={styles.overlayTextWrap}>
-            <Text style={styles.overlayText}>Gleiche mit offenen Daten ab…</Text>
-            <Animated.Text style={[styles.overlayVerified, { opacity: verifyOpacity }]}>
-              Standort abgeglichen
-            </Animated.Text>
+            )}
           </View>
-        </View>
-      ) : null}
-    </BrutSurface>
+
+          <Symbol name="chevron.right" size={18} color={THEME.colors.textMuted} />
+        </BrutSurface>
+      )}
+    </HapticButton>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  wrap: {
     marginBottom: THEME.spacing.md,
   },
-  header: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing.sm,
@@ -221,9 +92,13 @@ const styles = StyleSheet.create({
   symbolBadgeDone: {
     backgroundColor: THEME.colors.success,
   },
+  body: {
+    flex: 1,
+  },
   badgeBox: {
+    alignSelf: 'flex-start',
     paddingHorizontal: THEME.spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: THEME.radius.sm,
     borderWidth: THEME.border.thin,
     borderColor: THEME.border.color,
@@ -237,105 +112,29 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    ...THEME.type.heading,
+    ...THEME.type.bodyStrong,
     color: THEME.colors.text,
-    marginTop: THEME.spacing.sm,
+    marginTop: THEME.spacing.xs,
   },
   location: {
-    ...THEME.type.captionStrong,
-    color: THEME.colors.textMuted,
-    marginTop: 2,
-  },
-  desc: {
-    ...THEME.type.body,
-    color: THEME.colors.text,
-    marginTop: THEME.spacing.sm,
-  },
-  scanButton: {
-    marginTop: THEME.spacing.lg,
-  },
-  scanButtonFace: {
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scanButtonText: {
-    ...THEME.type.bodyStrong,
-    color: THEME.colors.onSignal,
-  },
-  reveal: {
-    marginTop: THEME.spacing.md,
-    padding: THEME.spacing.sm,
-    borderRadius: THEME.radius.sm,
-    borderWidth: THEME.border.thin,
-    borderColor: THEME.border.color,
-    backgroundColor: THEME.colors.success,
-  },
-  revealLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  revealLabel: {
-    ...THEME.type.eyebrow,
-    color: THEME.colors.onSignal,
-  },
-  factText: {
-    ...THEME.type.body,
-    color: THEME.colors.text,
-    marginTop: THEME.spacing.sm,
-  },
-  revealFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: THEME.spacing.md,
-    gap: THEME.spacing.sm,
-  },
-  source: {
     ...THEME.type.caption,
     color: THEME.colors.textMuted,
-    flexShrink: 1,
+    marginTop: 1,
   },
-  waterGain: {
-    ...THEME.type.bodyStrong,
-    color: THEME.colors.text,
+  teaser: {
+    ...THEME.type.caption,
+    color: THEME.colors.textMuted,
+    marginTop: THEME.spacing.xs,
   },
-  // Waehrend des Abgleichs deckt die Karte sich selbst zu: schwarze Flaeche,
-  // ein gelber Balken laeuft durch. Kein Glas, kein Glow mehr.
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: THEME.colors.ink,
-    borderRadius: THEME.radius.sm,
+  doneRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+    gap: 5,
+    marginTop: THEME.spacing.xs,
   },
-  laser: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: THEME.colors.primary,
-  },
-  overlayTextWrap: {
-    alignItems: 'center',
-    paddingHorizontal: THEME.spacing.lg,
-  },
-  overlayText: {
+  doneText: {
     ...THEME.type.captionStrong,
-    color: THEME.colors.surface,
-    textAlign: 'center',
-  },
-  overlayVerified: {
-    ...THEME.type.bodyStrong,
-    color: THEME.colors.primary,
-    textAlign: 'center',
+    color: THEME.colors.text,
   },
 });
 

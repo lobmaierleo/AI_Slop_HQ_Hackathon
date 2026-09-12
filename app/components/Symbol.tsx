@@ -33,6 +33,7 @@ const SYMBOLS = {
   'location.north.line.fill': 'navigation',
   'photo.fill': 'image',
   xmark: 'close',
+  'chevron.right': 'chevron_right',
   circle: 'circle',
   'trophy.fill': 'trophy',
 } as const;

@@ -6,14 +6,14 @@
 *~6,000 tokens/session saved*
 - Die Hackathon-Recherche (hackathon.ars.electronica.art: /de/, /hackathon/, /tutorials/, /coding-agents/, /datasets/, /tutorials/pi-dev/ sowie ars.electronica.art/negotiatinghumanity/hackathondata/) ist in `docs/briefing.md` und `docs/datasets.md` festgehalten. Diese Dateien lesen statt die 7 Seiten erneut per WebFetch zu holen.
 
-### Dev-Server Logs
+### Dev-Server Logs — korrigiert 12.09.2026
 *~4,000 tokens/session saved*
-- Next.js dev läuft im Hintergrund; Log liegt unter `/private/tmp/claude-501/-Users-leolobmaier-Documents-GitHub-nosync-Developer-AI-Slop-HQ-Hackathon/<session>.log`. Log EINMAL komplett lesen (`Read` auf die Datei oder `tail -200`), nicht in Schleife `tail -6`/`grep` neu absetzen.
-- Für „läuft die Seite?": `curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` — ein Aufruf statt wiederholter Log-Pollings.
+- Es gibt keinen Next.js-Server und kein localhost:3000 mehr. Was im Hintergrund laufen kann, ist **Metro** (`npx expo start` oder `npx expo run:ios`). Dessen Log EINMAL komplett lesen, nicht in Schleife `tail -6`/`grep` neu absetzen.
+- Metro nicht dauerhaft im Hintergrund stehen lassen: ein hängender Server hat am 12.09. den Xcode-Build aus Speichermangel abgeschossen.
 
-### Projektstruktur & Datensätze
+### Projektstruktur & Datensätze — korrigiert 12.09.2026
 *~3,500 tokens/session saved*
-- Repo-Layout: `app/` (Next.js, App Router, Tailwind, maplibre-gl), `data/festival/ars-festival-2026.json`, `data/linz/<dataset>/`, `scripts/build_summary.py`, `scripts/build_app_data.py`, `docs/`, `tasks/`.
+- Repo-Layout: `app/` (**Expo SDK 57 / React Native**, Expo Router, `react-native-maps` — kein Next.js, kein Tailwind, kein maplibre), `data/festival/ars-festival-2026.json`, `data/linz/<dataset>/`, `scripts/build_summary.py`, `scripts/build_quests.py`, `scripts/build_graph.py`, `scripts/build_places.py`, `docs/`, `tasks/`.
 - `data/SUMMARY.md` ist der Einstiegspunkt für Datenfragen — zuerst dort greppen, bevor einzelne JSON/CSV geparst werden.
 - `DESIGN.md` im Repo-Root ist verbindlich für alle UI-Arbeiten (Nutzeranweisung).
 

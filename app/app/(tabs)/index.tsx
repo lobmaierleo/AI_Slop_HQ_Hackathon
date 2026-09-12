@@ -3,6 +3,7 @@ import { Alert, Animated, Easing, ScrollView, StyleSheet, Text, View } from 'rea
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface } from '@/components/BrutSurface';
 import { HapticButton } from '@/components/HapticButton';
 import { LeaderboardBlock } from '@/components/LeaderboardBlock';
@@ -20,7 +21,7 @@ function dayOfYear(date: Date): number {
 
 export default function OverviewScreen() {
   const router = useRouter();
-  const { savedWaterLiters, aiQueriesAvoided, completedQuestIds, requestSegment, resetProgress } =
+  const { savedWaterLiters, aiQueriesAvoided, completedQuestIds, requestQuest, resetProgress } =
     useGameStore();
 
   // Fixer Tagesindex statt Math.random() -- derselbe Spot fuer alle an einem Tag.
@@ -59,7 +60,7 @@ export default function OverviewScreen() {
   }, [segmentAnim, edgeCount]);
 
   const goToSpot = () => {
-    requestSegment('photo');
+    requestQuest(spot.id);
     router.push('/(tabs)/quests');
   };
 
@@ -138,24 +139,7 @@ export default function OverviewScreen() {
           <Text style={styles.spotLocation}>{spot.location}</Text>
           <Text style={styles.spotTeaser}>{spot.teaser}</Text>
 
-          <HapticButton
-            haptic="medium"
-            pressStyle="push"
-            style={styles.spotCtaWrap}
-            onPress={goToSpot}
-            accessibilityLabel="Zur Entdeckung"
-          >
-            {(pressed) => (
-              <BrutSurface
-                tone="primary"
-                pressed={pressed}
-                radius={THEME.radius.sm}
-                contentStyle={styles.spotCta}
-              >
-                <Text style={styles.spotCtaText}>Zur Entdeckung</Text>
-              </BrutSurface>
-            )}
-          </HapticButton>
+          <BrutButton label="Zur Entdeckung" style={styles.spotCtaWrap} onPress={goToSpot} />
         </BrutSurface>
 
         <HapticButton haptic="selection" style={styles.resetLink} onPress={confirmReset}>
@@ -320,15 +304,6 @@ const styles = StyleSheet.create({
   },
   spotCtaWrap: {
     marginTop: THEME.spacing.md,
-  },
-  spotCta: {
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spotCtaText: {
-    ...THEME.type.bodyStrong,
-    color: THEME.colors.onSignal,
   },
   resetLink: {
     alignSelf: 'center',

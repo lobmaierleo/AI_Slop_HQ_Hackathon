@@ -5,6 +5,9 @@ import quests from '@/data/quests.json';
 import { LITERS_PER_QUERY, queriesAvoided } from '@/lib/net';
 import type { SymbolName } from '@/components/Symbol';
 
+/** Eine Zeile der Kennzahlentabelle. Beim Build aus der Quellzeile gelesen. */
+export type QuestStat = { label: string; value: string };
+
 export type PhotoQuest = {
   id: string;
   type: string;
@@ -16,6 +19,12 @@ export type PhotoQuest = {
   teaser: string;
   /** Der Satz, der erst nach dem Besuch sichtbar wird. Kommt aus dem Datensatz. */
   fact: string;
+  /** Der Wissenstext der Detailansicht: warum Ort und Datensatz zusammengehören. */
+  info: string;
+  /** Zwei bis fünf Kennzahlen aus dem Datensatz, Label und Wert getrennt. */
+  stats: QuestStat[];
+  /** Nur an manchen Orten hängt eine Runde Fakt oder Slop. Meist leer. */
+  triviaIds: string[];
   waterLiters: number;
   lat: number;
   lon: number;
@@ -32,8 +41,18 @@ export type TriviaQuest = {
 export const PHOTO_QUESTS = quests.photoQuests as PhotoQuest[];
 export const TRIVIA_QUESTS = quests.triviaQuests as TriviaQuest[];
 
-/** Die beiden Bereiche des Quests-Tabs. */
-export type Segment = 'photo' | 'trivia';
+const TRIVIA_BY_ID = new Map(TRIVIA_QUESTS.map((t) => [t.id, t]));
+
+/**
+ * Die Aussagen, die an einem Ort hängen. Fakt oder Slop ist kein eigener
+ * Bereich mehr, sondern die Zugabe in der Detailansicht mancher Orte --
+ * deshalb wird hier aufgelöst und nicht mehr über einen globalen Index.
+ */
+export function triviaFor(quest: PhotoQuest): TriviaQuest[] {
+  return quest.triviaIds
+    .map((id) => TRIVIA_BY_ID.get(id))
+    .filter((t): t is TriviaQuest => t !== undefined);
+}
 
 /** Nur diese Felder ueberleben einen App-Neustart. */
 type Persisted = {
@@ -59,12 +78,17 @@ export type GameState = Persisted & {
   hydrated: boolean;
   /** Abgeleitet aus savedWaterLiters, damit die Zahl im Pitch nachrechenbar bleibt. */
   aiQueriesAvoided: number;
-  pendingSegment: Segment | null;
+  /**
+   * Der Ort, dessen Detailansicht sich beim nächsten Betreten des Quests-Tabs
+   * öffnen soll. Ersetzt die frühere Bereichsumschaltung: es gibt keine zwei
+   * Bereiche mehr, sondern nur noch Orte und ihre Subfenster.
+   */
+  pendingQuestId: string | null;
   start: () => void;
   completePhotoQuest: (questId: string, photoUri?: string) => void;
   answerTrivia: (questId: string, wasCorrect: boolean) => void;
-  requestSegment: (segment: Segment) => void;
-  consumeSegment: () => void;
+  requestQuest: (questId: string) => void;
+  consumeQuest: () => void;
   resetProgress: () => void;
 };
 
@@ -78,7 +102,7 @@ const GameContext = createContext<GameState | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [saved, setSaved] = useState<Persisted>(EMPTY);
   const [hydrated, setHydrated] = useState(false);
-  const [pendingSegment, setPendingSegment] = useState<Segment | null>(null);
+  const [pendingQuestId, setPendingQuestId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -136,27 +160,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const resetProgress = useCallback(() => {
     setSaved(EMPTY);
-    setPendingSegment(null);
+    setPendingQuestId(null);
   }, []);
 
-  const requestSegment = useCallback((segment: Segment) => setPendingSegment(segment), []);
-  const consumeSegment = useCallback(() => setPendingSegment(null), []);
+  const requestQuest = useCallback((questId: string) => setPendingQuestId(questId), []);
+  const consumeQuest = useCallback(() => setPendingQuestId(null), []);
 
   const value = useMemo<GameState>(
     () => ({
       ...saved,
       hydrated,
       aiQueriesAvoided: queriesAvoided(saved.savedWaterLiters),
-      pendingSegment,
+      pendingQuestId,
       start,
       completePhotoQuest,
       answerTrivia,
-      requestSegment,
-      consumeSegment,
+      requestQuest,
+      consumeQuest,
       resetProgress,
     }),
-    [saved, hydrated, pendingSegment, start, completePhotoQuest, answerTrivia,
-      requestSegment, consumeSegment, resetProgress],
+    [saved, hydrated, pendingQuestId, start, completePhotoQuest, answerTrivia,
+      requestQuest, consumeQuest, resetProgress],
   );
 
   return createElement(GameContext.Provider, { value }, children);

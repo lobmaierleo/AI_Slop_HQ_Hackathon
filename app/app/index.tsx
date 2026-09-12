@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface, type Tone } from '@/components/BrutSurface';
-import { HapticButton } from '@/components/HapticButton';
 import { Symbol } from '@/components/Symbol';
 import type { SymbolName } from '@/components/Symbol';
 import { useGameStore } from '@/state/useGameStore';
@@ -63,18 +63,7 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <HapticButton
-          haptic="heavy"
-          pressStyle="push"
-          onPress={start}
-          accessibilityLabel="Eigenes Netz aktivieren"
-        >
-          {(pressed) => (
-            <BrutSurface tone="primary" pressed={pressed} contentStyle={styles.cta}>
-              <Text style={styles.ctaText}>Eigenes Netz aktivieren</Text>
-            </BrutSurface>
-          )}
-        </HapticButton>
+        <BrutButton label="Eigenes Netz aktivieren" size="lg" haptic="heavy" onPress={start} />
       </SafeAreaView>
     </View>
   );
@@ -137,14 +126,5 @@ const styles = StyleSheet.create({
   rowDesc: {
     ...THEME.type.caption,
     color: THEME.colors.textMuted,
-  },
-  cta: {
-    height: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaText: {
-    ...THEME.type.heading,
-    color: THEME.colors.onSignal,
   },
 });

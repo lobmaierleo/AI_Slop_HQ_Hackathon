@@ -2,13 +2,18 @@
 
 Gerüst. Wird am Samstag gefüllt, nicht am Samstag erfunden.
 
-## Live-URL
+## Der Gegenstand
 
-- **Produktion:** <https://ars-hackathon-2026.vercel.app>
-- **Ausgedruckter QR-Code:** [`qr-code.png`](qr-code.png) — vor dem Hackathon in A5 ausdrucken
-- **QR-Code:** ausgedruckt am Tisch **und** auf der letzten Folie. Das ist der wichtigste
-  Gegenstand des ganzen Tages — beim Community Voting stimmt niemand für etwas, das er nicht
-  selbst angefasst hat.
+Es gibt **keine URL und keinen QR-Code** — das war eine frühere Planung und ist am 11.09.2026
+bewusst verworfen worden. SELBERDENKEN ist eine native iOS-App und läuft als Release-Build auf
+einem Vorführ-iPhone.
+
+- **Das Gerät ist der Pitch.** Beim Community Voting stimmt niemand für etwas, das er nicht
+  selbst angefasst hat — also wird das iPhone herumgereicht, nicht ein Link geteilt.
+- **Release-Build, nicht Debug.** Ein Debug-Build lädt sein JavaScript von Metro und ist ohne
+  den Rechner tot. `npx expo run:ios --device --configuration Release`
+- **Vorher prüfen:** Akku voll, Flugmodus-tauglich (die App braucht kein Netz), Fortschritt
+  auf einen vorzeigbaren Stand gebracht, Zurücksetzen-Knopf kennen.
 
 ## Aufbau
 
@@ -21,7 +26,8 @@ Gerüst. Wird am Samstag gefüllt, nicht am Samstag erfunden.
 4. **Die Verschränkung** (15 s) — explizit aussprechen, welche zwei Datenwelten sich hier
    berühren und warum das ohne beide nicht ginge. Das ist ein wörtliches Bewertungskriterium;
    die Wähler:innen sollen es abhaken können.
-5. **Der QR-Code** (5 s) — „Probiert es aus, solange die anderen pitchen."
+5. **Das Gerät weggeben** (5 s) — „Probiert es aus, solange die anderen pitchen." Das iPhone
+   wandert ins Publikum und bleibt dort bis zur Abstimmung.
 
 ## Regeln für den Auftritt
 

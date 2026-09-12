@@ -23,7 +23,7 @@ Bewertet werden laut Ausschreibung: *Idee, Kreativität, Originalität, Umsetzun
 
 Was daraus folgt — das ist unsere gesamte Strategie:
 
-1. **Das Publikum muss es selbst ausprobieren können.** Eine öffentliche URL plus QR-Code am Tisch und auf der Pitch-Folie ist Pflicht, kein Nice-to-have. Wer nur ein Video zeigt, verliert gegen jemanden, den man am eigenen Handy anfassen kann.
+1. **Das Publikum muss es selbst ausprobieren können.** Wer nur ein Video zeigt, verliert gegen jemanden, den man anfassen kann. Ursprünglich war dafür eine öffentliche URL plus QR-Code geplant; seit dem 11.09.2026 lösen wir es umgekehrt — SELBERDENKEN ist eine native iOS-App, und das Vorführ-iPhone wandert durchs Publikum. Das ist anfassbarer als ein Link und fällt nicht mit dem WLAN aus.
 2. **Es muss in unter 60 Sekunden zünden.** Wähler:innen sind müde Teilnehmende und Festivalpublikum, kein Fachgremium. Kein technisches Deep-Dive.
 3. **Beide Datenwelten müssen strukturell verschränkt sein**, nicht dekorativ nebeneinanderliegen. „Wir zeigen Festivalorte auf einer Linz-Karte" erfüllt das Kriterium nicht — die Karte ist Beiwerk. Es zählt eine Verbindung, die ohne beide Datensätze nicht existieren könnte.
 4. **Ars-Electronica-Publikum ist ein Kunstpublikum.** Haltung, Reibung und ein Gedanke, der hängen bleibt, schlagen technische Tiefe. Ein Projekt, das etwas *behauptet*, gewinnt gegen eines, das nur etwas *kann*.
@@ -61,7 +61,7 @@ Wir sind **ohne Add-ons** angemeldet — kein OpenRouter-Key, kein pi.dev. Wir a
 Alle drei lesen denselben Kontext: `CLAUDE.md`, `AGENTS.md` und `GEMINI.md` sind Symlinks auf eine Datei. Die vier offiziellen Hackathon-Skills liegen in `.agents/skills/` und sind für alle drei Agents installiert.
 
 Daraus folgt zwei Dinge für die Planung:
-- **Kein Verlass auf Hackathon-Infrastruktur.** Kein Mistral-Budget, keine gehostete Umgebung. Alles läuft über unsere Laptops und Vercel.
+- **Kein Verlass auf Hackathon-Infrastruktur.** Kein Mistral-Budget, keine gehostete Umgebung. Alles läuft über unsere Laptops und ein Vorführ-iPhone — nichts ist gehostet, also kann auch nichts ausfallen.
 - **Wenn das Projekt ein LLM zur Laufzeit braucht**, brauchen wir einen eigenen API-Key. Besser: LLM-Arbeit *vorberechnen* (siehe `datasets.md`), sodass die Live-Demo ohne API-Call auskommt. Das ist zugleich der beste Schutz gegen schlechtes WLAN in der Grand Garage.
 
 ## Risiken

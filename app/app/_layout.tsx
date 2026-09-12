@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { preloadSymbolFont } from '@/lib/symbolFont';
 import { GameProvider, useGameStore } from '@/state/useGameStore';
@@ -38,12 +39,17 @@ export default function RootLayout() {
     preloadSymbolFont().catch(() => undefined);
   }, []);
 
+  // Der Zoom im Netz-Tab braucht einen Wurzelknoten fuer Gesten. Ohne ihn
+  // laufen Pinch und Pan auf Android ins Leere, ohne dass etwas abstuerzt --
+  // ein Fehler, den man erst am Geraet bemerkt.
   return (
-    <SafeAreaProvider>
-      <GameProvider>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </GameProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <GameProvider>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </GameProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

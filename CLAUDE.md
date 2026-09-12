@@ -16,14 +16,11 @@ Ziel ist gewinnen.
    existieren könnte.
 3. **Verbrannte Ideen:** Umkreissuche, Tagesplaner, Festivalkalender, Programm-Chatbot. Das sind die
    vier offiziellen Beispielprojekte — halbe Konkurrenz baut Varianten davon.
-4. **`DESIGN.md` ist verbindlich für jede UI.** Vor jeder Arbeit an Oberflächen lesen und
-   einhalten — ohne Ausnahme, auch bei kleinen Änderungen. Siehe unten.
 
 ## Wo was liegt
 
 | Pfad | Inhalt |
 |---|---|
-| `DESIGN.md` | **Verbindliches Design-System (Apple-Stil).** Vor jeder UI-Arbeit lesen |
 | `docs/briefing.md` | Bewerb, Ablauf, Voting-Mechanik, Konkurrenzlage, Risiken |
 | `docs/datasets.md` | Datenkatalog mit **Join-Regeln und Fallstricken** — vor jedem Datenzugriff lesen |
 | `docs/ideas.md` | 29 Ideen mit Aufwand, Risiko und Voting-Argument |
@@ -73,11 +70,19 @@ Die Regeln, an denen Entwürfe am ehesten scheitern:
 - **Gewicht 500 existiert nicht.** Die Leiter ist 300 / 400 / 600 / 700 / 800.
 - **Druckzustand jedes Buttons.** `HapticButton` liefert `scale(0.95)` über `scaleTo` oder,
   auf Flächen mit Schatten, `pressStyle="push"`.
+- **Jeder Button ist `app/components/BrutButton.tsx`.** Niemals `HapticButton + BrutSurface +
+  Text` von Hand nachbauen und **niemals eine feste `height` in eine `contentStyle` von
+  `BrutSurface` schreiben**: die Fläche polstert mit `spacing.md`, eine Höhe von 50 lässt dem
+  Text 18px bei Zeilenhöhe 25 — die Schrift wird oben und unten abgeschnitten. Wenn Höhe nötig
+  ist: `minHeight` plus eigenes `paddingVertical`.
 
 Für Datenvisualisierung gilt: Kategorie heißt **Farbe und Form zugleich**, aus
 `app/lib/categories.ts`. Karte und Synapsen-Netz lesen dieselbe Tabelle, damit sie nicht
-auseinanderlaufen. Auf der Karte heißt entdeckt: größer, eckig, farbig, mit Schatten und mit
-Namen — unentdeckt bleibt ein kleiner weißer Kreis.
+auseinanderlaufen. Auf der Karte trägt die **Form immer die Art** — auch unentdeckt. Den
+Entdeckungszustand tragen allein Größe, Füllung, Schatten und Name: entdeckt ist groß, farbig,
+geschattet und beschriftet, unentdeckt klein, weiß und namenlos. Im Synapsen-Netz dagegen wird
+Unentdecktes **gar nicht gezeichnet** — kein Umriss, kein Platzhalter, sonst sieht man das
+fertige Netz, bevor man losgegangen ist.
 
 ## Arbeitsregeln
 

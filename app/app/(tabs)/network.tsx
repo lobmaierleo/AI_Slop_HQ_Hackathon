@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface, type Tone } from '@/components/BrutSurface';
 import { Symbol } from '@/components/Symbol';
 import { SynapseGraph } from '@/components/SynapseGraph';
@@ -17,6 +18,7 @@ export default function NetworkScreen() {
     useGameStore();
   const { width } = useWindowDimensions();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const size = width - GRAPH_MARGIN * 2;
   const active = useMemo(() => activeEdges(completedQuestIds).length, [completedQuestIds]);
@@ -26,12 +28,17 @@ export default function NetworkScreen() {
     ? Math.round((correctTriviaIds.length / answeredTriviaIds.length) * 100)
     : null;
 
+  // Ausgewaehlt werden kann nur, was der Graph ueberhaupt rendert -- also nur
+  // Entdecktes. Ein eigener "unlocked"-Zustand ist damit ueberfluessig.
   const selected = selectedId ? PHOTO_QUESTS.find((q) => q.id === selectedId) : undefined;
-  const unlocked = selectedId ? completedQuestIds.includes(selectedId) : false;
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.eyebrow}>DEIN NETZ</Text>
         <Text style={styles.title}>Jeder Ort ein Neuron</Text>
         <Text style={styles.lead}>
@@ -52,7 +59,9 @@ export default function NetworkScreen() {
             label="Autonomie"
             value={autonomy === null ? '–' : `${autonomy} %`}
             caption={
-              autonomy === null ? 'noch offen' : `${correctTriviaIds.length}/${answeredTriviaIds.length} richtig`
+              autonomy === null
+                ? 'noch offen'
+                : `${correctTriviaIds.length}/${answeredTriviaIds.length} bei Fakt oder Slop`
             }
           />
         </View>
@@ -63,61 +72,49 @@ export default function NetworkScreen() {
             completedIds={completedQuestIds}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            scrollRef={scrollRef}
           />
         </View>
 
         {selected ? (
           <BrutSurface radius={THEME.radius.md} contentStyle={styles.detail}>
             <View style={styles.detailHead}>
-              <View style={[styles.badge, unlocked && styles.badgeDone]}>
+              <View style={styles.badge}>
                 <Symbol name={selected.symbol} size={17} color={THEME.colors.ink} />
               </View>
               <View style={styles.detailHeadText}>
                 <Text style={styles.detailTitle}>{selected.title}</Text>
                 <Text style={styles.detailLocation}>{selected.location}</Text>
               </View>
-              <Pressable onPress={() => setSelectedId(null)} hitSlop={12} style={styles.close}>
-                <Symbol name="xmark" size={15} color={THEME.colors.ink} />
-              </Pressable>
+              <BrutButton
+                label=""
+                icon="xmark"
+                tone="surface"
+                size="sm"
+                shadow="sm"
+                accessibilityLabel="Schließen"
+                onPress={() => setSelectedId(null)}
+                style={styles.close}
+              />
             </View>
 
-            {unlocked ? (
-              <>
-                <View style={styles.proof}>
-                  <Symbol
-                    name={completedPhotos[selected.id] ? 'photo.fill' : 'checkmark.seal.fill'}
-                    size={15}
-                    color={THEME.colors.ink}
-                  />
-                  <Text style={styles.proofText}>Vor Ort bestätigt</Text>
-                </View>
-                <Text style={styles.fact}>{selected.fact}</Text>
-                <View style={styles.detailFoot}>
-                  <Text style={styles.source}>{selected.source}</Text>
-                  <Text style={styles.liters}>
-                    +{selected.waterLiters.toFixed(1).replace('.', ',')} L
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={styles.teaser}>{selected.teaser}</Text>
-                <View style={styles.detailFoot}>
-                  <Text style={styles.source}>Noch nicht entdeckt</Text>
-                  <Text style={styles.litersMuted}>
-                    {selected.waterLiters.toFixed(1).replace('.', ',')} L möglich
-                  </Text>
-                </View>
-              </>
-            )}
+            <View style={styles.proof}>
+              <Symbol
+                name={completedPhotos[selected.id] ? 'photo.fill' : 'checkmark.seal.fill'}
+                size={15}
+                color={THEME.colors.ink}
+              />
+              <Text style={styles.proofText}>Vor Ort bestätigt</Text>
+            </View>
+            <Text style={styles.fact}>{selected.fact}</Text>
+            <View style={styles.detailFoot}>
+              <Text style={styles.source}>{selected.source}</Text>
+              <Text style={styles.liters}>+{selected.waterLiters.toFixed(1).replace('.', ',')} L</Text>
+            </View>
           </BrutSurface>
-        ) : (
-          <Text style={styles.hint}>
-            {completedQuestIds.length === 0
-              ? 'Noch ist jeder Knoten ein leerer Umriss. Geh zum ersten Ort, dann bekommt er Form und Farbe.'
-              : 'Tippe einen Knoten an, um zu sehen, was dort steht.'}
-          </Text>
-        )}
+        ) : completedQuestIds.length > 0 ? (
+          <Text style={styles.hint}>Tippe einen Knoten an, um zu sehen, was dort steht.</Text>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -173,10 +170,12 @@ const styles = StyleSheet.create({
   metricCaption: { ...THEME.type.caption, fontSize: 12, color: THEME.colors.textMuted },
 
   // Der Graph darf breiter sein als der Text daneben -- er ist das Schaustueck
-  // dieses Tabs, nicht eine Abbildung darin.
+  // dieses Tabs, nicht eine Abbildung darin. overflow: 'hidden' haelt den
+  // gezoomten Graphen von den Kacheln darueber und darunter fern.
   graphWrap: {
     alignItems: 'center',
     marginHorizontal: -(THEME.spacing.md - GRAPH_MARGIN),
+    overflow: 'hidden',
   },
 
   detail: { padding: THEME.spacing.md, gap: THEME.spacing.sm },
@@ -188,21 +187,11 @@ const styles = StyleSheet.create({
     borderRadius: THEME.radius.sm,
     borderWidth: THEME.border.thin,
     borderColor: THEME.border.color,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeDone: { backgroundColor: THEME.colors.success },
-  close: {
-    width: 30,
-    height: 30,
-    borderRadius: THEME.radius.sm,
-    borderWidth: THEME.border.thin,
-    borderColor: THEME.border.color,
-    backgroundColor: THEME.colors.surfaceSunken,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  close: { alignSelf: 'flex-start' },
   detailTitle: { ...THEME.type.bodyStrong, color: THEME.colors.text },
   detailLocation: { ...THEME.type.caption, color: THEME.colors.textMuted },
   proof: {
@@ -219,7 +208,6 @@ const styles = StyleSheet.create({
   },
   proofText: { ...THEME.type.captionStrong, color: THEME.colors.onSignal },
   fact: { ...THEME.type.body, color: THEME.colors.text },
-  teaser: { ...THEME.type.body, color: THEME.colors.textMuted },
   detailFoot: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -230,6 +218,5 @@ const styles = StyleSheet.create({
   },
   source: { ...THEME.type.caption, color: THEME.colors.textMuted, flex: 1 },
   liters: { ...THEME.type.bodyStrong, color: THEME.colors.text },
-  litersMuted: { ...THEME.type.bodyStrong, color: THEME.colors.textFaint },
   hint: { ...THEME.type.captionStrong, color: THEME.colors.textMuted, textAlign: 'center' },
 });

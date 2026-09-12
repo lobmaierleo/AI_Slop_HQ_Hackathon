@@ -2,21 +2,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 import type { LatLng, Region } from 'react-native-maps';
+import Svg, { Circle, Polygon } from 'react-native-svg';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrutSurface } from '@/components/BrutSurface';
-import { MapLegend } from '@/components/MapLegend';
-import type { MapLayerKey } from '@/components/MapLegend';
-import { MapQuestCard } from '@/components/MapQuestCard';
+import { MapFilterBar } from '@/components/MapFilterBar';
+import { QuestDetailSheet } from '@/components/QuestDetailSheet';
 import { Symbol } from '@/components/Symbol';
-import { CATEGORY_META, categoryOf, shortLabel } from '@/lib/categories';
+import { CATEGORY_KEYS, CATEGORY_META, categoryOf, shapePoints, shortLabel } from '@/lib/categories';
+import type { NodeShape } from '@/lib/categories';
 import placesData from '@/data/places.json';
 import { EDGES, formatDistance, meters } from '@/lib/net';
 import { PHOTO_QUESTS, useGameStore } from '@/state/useGameStore';
 import type { PhotoQuest } from '@/state/useGameStore';
 import { THEME } from '@/theme/colors';
+import type { CategoryKey } from '@/theme/colors';
 
 const { venues, fountains } = placesData;
 
@@ -59,26 +60,69 @@ const HIDE_POI_STYLE = [
 ];
 
 /**
- * Der entdeckte Marker ist hoeher als breit: Quadrat oben, Namenskaestchen
- * darunter. Der Anker muss deshalb auf die Mitte des Quadrats zeigen und nicht
+ * Formgroessen der Marker. Unentdeckt ist die Form klein, weiss und ohne
+ * Schatten -- entdeckt wird sie groesser, farbig, bekommt einen
+ * Versatzschatten und ein Namenskaestchen darunter.
+ */
+const UNDISCOVERED_SIZE = 16;
+const UNDISCOVERED_R = 5;
+const DISCOVERED_SIZE = 26;
+const DISCOVERED_R = 9;
+const UNDISCOVERED_ANCHOR = { x: 0.5, y: 0.5 };
+
+/**
+ * Der entdeckte Marker ist hoeher als breit: Form oben, Namenskaestchen
+ * darunter. Der Anker muss deshalb auf die Mitte der Form zeigen und nicht
  * auf die Mitte der Flaeche, sonst sitzt der Ort neben seinem Punkt.
  */
-const MARKER_SIZE = 20;
 const MARKER_WRAP_W = 104;
-const MARKER_WRAP_H = 46;
-const MARKER_ANCHOR = { x: 0.5, y: MARKER_SIZE / 2 / MARKER_WRAP_H };
+const SHAPE_BOX = DISCOVERED_SIZE + THEME.shadow.offsetSm;
+const MARKER_WRAP_H = SHAPE_BOX + (THEME.spacing.xs - 1) + 21;
+const MARKER_ANCHOR = { x: 0.5, y: DISCOVERED_SIZE / 2 / MARKER_WRAP_H };
+
+/** Kategorieform als SVG, zentriert im Quadrat `size` x `size`. */
+function CategoryGlyph({
+  shape,
+  size,
+  r,
+  fill,
+}: {
+  shape: NodeShape;
+  size: number;
+  r: number;
+  fill: string;
+}) {
+  const c = size / 2;
+  const stroke = THEME.border.color;
+  const strokeWidth = THEME.border.width;
+  return (
+    <Svg width={size} height={size}>
+      {shape === 'circle' ? (
+        <Circle cx={c} cy={c} r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+      ) : (
+        <Polygon
+          points={shapePoints(shape, c, c, r)}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+        />
+      )}
+    </Svg>
+  );
+}
 
 export default function MapScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { completedQuestIds, requestSegment } = useGameStore();
+  const { completedQuestIds } = useGameStore();
 
-  const [layers, setLayers] = useState<Record<MapLayerKey, boolean>>({
-    quests: true,
-    venues: true,
-    fountains: false,
+  const [active, setActive] = useState<Record<CategoryKey, boolean>>(() => {
+    const all = {} as Record<CategoryKey, boolean>;
+    CATEGORY_KEYS.forEach((key) => {
+      all[key] = true;
+    });
+    return all;
   });
-  const [selectedQuest, setSelectedQuest] = useState<PhotoQuest | null>(null);
+  const [openQuest, setOpenQuest] = useState<PhotoQuest | null>(null);
   const [position, setPosition] = useState<{ lat: number; lon: number } | null>(null);
   const mapRef = useRef<MapView>(null);
 
@@ -103,8 +147,8 @@ export default function MapScreen() {
     };
   }, []);
 
-  const toggleLayer = (key: MapLayerKey) => {
-    setLayers((current) => ({ ...current, [key]: !current[key] }));
+  const toggleCategory = (key: CategoryKey) => {
+    setActive((current) => ({ ...current, [key]: !current[key] }));
   };
 
   const done = useMemo(() => new Set(completedQuestIds), [completedQuestIds]);
@@ -141,6 +185,10 @@ export default function MapScreen() {
     return best;
   }, [position, done]);
 
+  // Kontextschicht: eine aktive Kategorie zeigt nicht nur ihre Quests, sondern
+  // den ganzen Linzer Datensatz dahinter. Fuer `tree`, `power` und `wifi` gibt
+  // es in data/places.json keine solche Schicht -- dort erscheinen nur die
+  // Quests, das ist so vorgesehen.
   const venueMarkers = useMemo(
     () =>
       venues.map((venue, index) => (
@@ -177,26 +225,46 @@ export default function MapScreen() {
   // tracksViewChanges auf true, und 23 sich neu zeichnende Marker machen das
   // Schwenken der Karte zaeh. Das Aufploppen gehoert in den Netz-Tab.
   //
-  // Ohne Nebel muss der Marker selbst den Unterschied tragen. Entdeckt heisst
-  // deshalb gleichzeitig: groesser, eckig, farbig, mit Schatten und mit Namen.
+  // Abweichung von der Regel in CLAUDE.md, die fuer unentdeckt "einen kleinen
+  // weissen Kreis" vorschreibt: die Kategorieform traegt die Art jetzt auch im
+  // unentdeckten Zustand. Groesse, Fuellung, Schatten und Name bleiben allein
+  // beim Entdeckungszustand -- Ohne Nebel muss der Marker den Unterschied
+  // tragen, deshalb heisst entdeckt weiterhin: groesser, farbig, mit Schatten
+  // und mit Namen.
   const questMarkers = useMemo(
     () =>
-      PHOTO_QUESTS.map((quest) => {
+      PHOTO_QUESTS.filter((quest) => active[categoryOf(quest.type)]).map((quest) => {
         const found = done.has(quest.id);
-        const color = CATEGORY_META[categoryOf(quest.type)].color;
+        const meta = CATEGORY_META[categoryOf(quest.type)];
         return (
           <Marker
             key={quest.id}
             coordinate={{ latitude: quest.lat, longitude: quest.lon }}
-            anchor={found ? MARKER_ANCHOR : { x: 0.5, y: 0.5 }}
+            anchor={found ? MARKER_ANCHOR : UNDISCOVERED_ANCHOR}
             tracksViewChanges={false}
-            onPress={() => setSelectedQuest(quest)}
+            onPress={() => setOpenQuest(quest)}
             zIndex={found ? 12 : 10}
           >
             {found ? (
               <View style={styles.foundWrap}>
-                <View style={styles.foundShadow} />
-                <View style={[styles.foundCore, { backgroundColor: color }]} />
+                <View style={styles.foundShapeBox}>
+                  <View style={styles.foundShadowSlot}>
+                    <CategoryGlyph
+                      shape={meta.shape}
+                      size={DISCOVERED_SIZE}
+                      r={DISCOVERED_R}
+                      fill={THEME.colors.ink}
+                    />
+                  </View>
+                  <View style={styles.foundCoreSlot}>
+                    <CategoryGlyph
+                      shape={meta.shape}
+                      size={DISCOVERED_SIZE}
+                      r={DISCOVERED_R}
+                      fill={meta.color}
+                    />
+                  </View>
+                </View>
                 <View style={styles.foundLabel}>
                   <Text style={styles.foundLabelText} numberOfLines={1}>
                     {shortLabel(quest.title)}
@@ -204,19 +272,18 @@ export default function MapScreen() {
                 </View>
               </View>
             ) : (
-              <View style={styles.unknownDot} />
+              <CategoryGlyph
+                shape={meta.shape}
+                size={UNDISCOVERED_SIZE}
+                r={UNDISCOVERED_R}
+                fill={THEME.colors.surface}
+              />
             )}
           </Marker>
         );
       }),
-    [done],
+    [done, active],
   );
-
-  const handleNavigateToQuest = () => {
-    requestSegment('photo');
-    setSelectedQuest(null);
-    router.push('/(tabs)/quests');
-  };
 
   return (
     <View style={styles.container}>
@@ -233,7 +300,7 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         showsPointsOfInterests={false}
         showsCompass={false}
-        onPress={() => setSelectedQuest(null)}
+        onPress={() => setOpenQuest(null)}
       >
         {/* Schwarze Fassung unten, Kategoriefarbe darueber -- auf heller Karte
             lesbarer als der fruehere Schein. */}
@@ -256,26 +323,19 @@ export default function MapScreen() {
           />
         ))}
 
-        {layers.venues ? venueMarkers : null}
-        {layers.fountains ? fountainMarkers : null}
-        {layers.quests ? questMarkers : null}
+        {active.water ? fountainMarkers : null}
+        {active.venue ? venueMarkers : null}
+        {questMarkers}
       </MapView>
 
-      <MapLegend
-        layers={layers}
-        onToggle={toggleLayer}
+      <MapFilterBar
+        active={active}
+        onToggle={toggleCategory}
         topOffset={insets.top + THEME.spacing.sm}
       />
 
       <View style={styles.bottom} pointerEvents="box-none">
-        {selectedQuest ? (
-          <MapQuestCard
-            quest={selectedQuest}
-            completed={done.has(selectedQuest.id)}
-            onNavigate={handleNavigateToQuest}
-            onClose={() => setSelectedQuest(null)}
-          />
-        ) : nearest ? (
+        {nearest ? (
           <BrutSurface radius={THEME.radius.md} contentStyle={styles.radar}>
             <View style={styles.radarIcon}>
               <Symbol name="location.north.line.fill" size={16} color={THEME.colors.ink} />
@@ -290,6 +350,8 @@ export default function MapScreen() {
           </BrutSurface>
         ) : null}
       </View>
+
+      <QuestDetailSheet quest={openQuest} onClose={() => setOpenQuest(null)} />
     </View>
   );
 }
@@ -312,36 +374,26 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.ink,
     opacity: 0.45,
   },
-  unknownDot: {
-    width: 14,
-    height: 14,
-    borderRadius: THEME.radius.pill,
-    backgroundColor: THEME.colors.surface,
-    borderWidth: THEME.border.width,
-    borderColor: THEME.border.color,
-  },
   foundWrap: {
     width: MARKER_WRAP_W,
     height: MARKER_WRAP_H,
     alignItems: 'center',
   },
+  foundShapeBox: {
+    width: SHAPE_BOX,
+    height: SHAPE_BOX,
+  },
   // Der harte Versatzschatten als eigene Flaeche -- eine Schatten-Prop waere
   // auf Android weichgezeichnet.
-  foundShadow: {
+  foundShadowSlot: {
     position: 'absolute',
     top: THEME.shadow.offsetSm,
-    left: (MARKER_WRAP_W - MARKER_SIZE) / 2 + THEME.shadow.offsetSm,
-    width: MARKER_SIZE,
-    height: MARKER_SIZE,
-    borderRadius: THEME.radius.sm,
-    backgroundColor: THEME.colors.ink,
+    left: THEME.shadow.offsetSm,
   },
-  foundCore: {
-    width: MARKER_SIZE,
-    height: MARKER_SIZE,
-    borderRadius: THEME.radius.sm,
-    borderWidth: THEME.border.width,
-    borderColor: THEME.border.color,
+  foundCoreSlot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   foundLabel: {
     marginTop: THEME.spacing.xs - 1,

@@ -25,6 +25,10 @@
       "expo-font",
       ["expo-location", {
         "locationWhenInUsePermission": "Zeigt dir, welcher Entdeckungsort gerade am nächsten liegt."
+      }],
+      ["expo-camera", {
+        "cameraPermission": "Dein Foto ist der Beweis, dass du wirklich vor Ort warst. Es bleibt am Gerät.",
+        "recordAudioAndroid": false
       }]
     ]
   }

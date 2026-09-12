@@ -273,29 +273,13 @@ components:
     padding: 64px
 ---
 
-## Overview
-
-Apple's web presence is a masterclass in **reverent product photography framed by near-invisible UI**. Every page is a stack of edge-to-edge product "tiles" — alternating light and dark canvases, each centered on a hero headline, a one-line tagline, two tiny blue pill CTAs, and an impossibly crisp product render. Nothing competes with the product. Typography is confident but quiet; color is either pure white, an off-white parchment, or a near-black tile; interactive elements are a single, quiet blue.
-
-Density is unusually low even by contemporary SaaS standards. Each tile occupies roughly one viewport, and there is no decorative chrome — no borders, no gradients, no decorative frames, no shadows on headlines. Elevation appears only when a product image rests on a surface (a single soft `rgba(0, 0, 0, 0.22) 3px 5px 30px` drop for visual weight). The result is a catalog that feels more like a museum gallery: the wall disappears and the artifact takes over.
-
-Store and shop surfaces retain the same chassis but switch modes. The product configurator (iPhone 17 Pro, accessories grid) introduces a tight grid of white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with a persistent thin sub-nav strip. The environment page leans darker and more editorial. Across all five surfaces the typographic system, spacing rhythm, and the single blue accent are consistent — this is one design language expressed at different volumes.
-
-**Key Characteristics:**
-- Photography-first presentation; UI recedes so the product can speak.
-- Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
-- Single blue accent (`{colors.primary}` — #0066cc) carries every interactive element. No second brand color exists.
-- Two button grammars: tiny blue pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
-- SF Pro Display + SF Pro Text — negative letter-spacing at display sizes for the signature "Apple tight" headline feel.
-- Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
-- Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
-- Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
-
 ## Override: SELBERDENKEN Neobrutalismus
 
-Alles oberhalb dieser Zeile beschreibt das Apple-System und bleibt die dokumentierte
-Grundlage des Repos — `docs/` und die vier Hackathon-Skills verweisen darauf. Die App unter
-`app/` folgt seit dem 11.09.2026 bewusst einer anderen Materialsprache: hellem
+**Dieser Abschnitt ist die verbindliche Vorgabe für alles Sichtbare in `app/`.** Er steht
+bewusst ganz oben: darunter folgt ab „Historische Referenz" die Apple-Designanalyse, die für
+die App nicht mehr gilt und nur noch als Repo-Grundlage stehen bleibt.
+
+Die App folgt seit dem 11.09.2026 bewusst einer anderen Materialsprache: hellem
 Neobrutalismus. Beim Community-Voting wird ein Gerät herumgereicht, die ersten 60 Sekunden
 entscheiden, und der sichtbare Bruch gegenüber den anderen Einreichungen ist der Zweck.
 
@@ -339,6 +323,25 @@ schwarze View hinter der Karte und keine Style-Prop: iOS könnte ihn über `shad
 hart zeichnen, Android nicht — `elevation` rendert immer einen weichgezeichneten
 Material-Schatten ohne steuerbaren Versatz.
 
+Jeder Knopf läuft durch `app/components/BrutButton.tsx`. Das Muster „HapticButton +
+BrutSurface + Text" nicht von Hand nachbauen, und **niemals eine feste `height` in eine
+`contentStyle` von `BrutSurface` schreiben**: die Fläche polstert mit `spacing.md`, eine Höhe
+von 50 lässt dem Text 18px bei Zeilenhöhe 25 — die Schrift wird oben und unten abgeschnitten.
+Wo Höhe nötig ist: `minHeight` plus eigenes `paddingVertical`. Ausrichtung (`alignSelf` und
+Ähnliches) gehört an die Aufrufstelle um den Knopf herum, nicht in seine `style`-Prop — diese
+landet auf der inneren Fläche, während die Trefferfläche darüber voll breit bleibt.
+
+### Datenvisualisierung
+
+Kategorie heißt **Farbe und Form zugleich**, aus `app/lib/categories.ts`. Karte und
+Synapsen-Netz lesen dieselbe Tabelle, damit sie nicht auseinanderlaufen.
+
+- **Auf der Karte trägt die Form immer die Art** — auch unentdeckt. Den Entdeckungszustand
+  tragen allein Größe, Füllung, Schatten und Name: entdeckt ist groß, farbig, geschattet und
+  beschriftet, unentdeckt klein, weiß und namenlos. Sonst sieht man nicht, worauf man zugeht.
+- **Im Synapsen-Netz wird Unentdecktes gar nicht gezeichnet** — kein Umriss, kein Platzhalter.
+  Sonst sieht man das fertige Netz, bevor man losgegangen ist.
+
 ### Unverändert gültig
 
 - Fließtext 17px bei Zeilenhöhe 25, Überschriften mit negativer Laufweite.
@@ -347,6 +350,34 @@ Material-Schatten ohne steuerbaren Versatz.
   der Druck in den eigenen Schatten (`HapticButton` mit `pressStyle="push"`).
 - Keine Emojis. Jedes Icon läuft durch `app/components/Symbol.tsx`.
 - Jeder sichtbare Wert kommt aus den Tokens.
+
+
+---
+
+# Historische Referenz: Apple-Designanalyse
+
+**Alles ab hier gilt nicht für `app/`.** Es ist die vom Hackathon-Skill
+`design-ars-festival-ui` erzeugte Analyse des Apple-Systems und bleibt als
+dokumentierte Grundlage des Repos stehen, weil `docs/` und die Skills darauf
+verweisen. Für die App gilt ausschließlich der Abschnitt darüber.
+
+## Overview
+
+Apple's web presence is a masterclass in **reverent product photography framed by near-invisible UI**. Every page is a stack of edge-to-edge product "tiles" — alternating light and dark canvases, each centered on a hero headline, a one-line tagline, two tiny blue pill CTAs, and an impossibly crisp product render. Nothing competes with the product. Typography is confident but quiet; color is either pure white, an off-white parchment, or a near-black tile; interactive elements are a single, quiet blue.
+
+Density is unusually low even by contemporary SaaS standards. Each tile occupies roughly one viewport, and there is no decorative chrome — no borders, no gradients, no decorative frames, no shadows on headlines. Elevation appears only when a product image rests on a surface (a single soft `rgba(0, 0, 0, 0.22) 3px 5px 30px` drop for visual weight). The result is a catalog that feels more like a museum gallery: the wall disappears and the artifact takes over.
+
+Store and shop surfaces retain the same chassis but switch modes. The product configurator (iPhone 17 Pro, accessories grid) introduces a tight grid of white utility cards at `{rounded.lg}` (18px) radius with a thin border, paired with a persistent thin sub-nav strip. The environment page leans darker and more editorial. Across all five surfaces the typographic system, spacing rhythm, and the single blue accent are consistent — this is one design language expressed at different volumes.
+
+**Key Characteristics:**
+- Photography-first presentation; UI recedes so the product can speak.
+- Alternating full-bleed tile sections: white/parchment ↔ near-black, with the color change itself acting as the section divider.
+- Single blue accent (`{colors.primary}` — #0066cc) carries every interactive element. No second brand color exists.
+- Two button grammars: tiny blue pill CTAs (`{rounded.pill}`) and compact utility rects (`{rounded.sm}`).
+- SF Pro Display + SF Pro Text — negative letter-spacing at display sizes for the signature "Apple tight" headline feel.
+- Whisper-soft elevation used only when a product image needs to breathe — exactly one drop-shadow in the entire system.
+- Tight two-row nav: slim `{component.global-nav}` + product-specific `{component.sub-nav-frosted}` with persistent right-aligned primary CTA.
+- Section rhythm across multiple pages: light hero → dark product tile → light utility tile → dark tile → parchment footer — a predictable pulse.
 
 ## Colors
 
