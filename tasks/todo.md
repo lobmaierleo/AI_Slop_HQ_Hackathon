@@ -4,6 +4,12 @@
 
 ## Offen
 
+- [ ] **Gerätetest der drei Council-Features vom 12.09. Mittag** (nur `tsc` und `expo export`
+      belegt): Netz-Replay (Knopf „Nochmal wachsen lassen" im Netz-Tab, Haptik je Schritt),
+      Kompassnadel im Sheet-Kopf unentdeckter Orte (dreht sich mit dem Gerät; Heading gibt es
+      nur am echten iPhone, nie im Simulator), schwarze Fläche „Was eine KI gesagt hätte" unter
+      den Kennzahlen entdeckter Orte. Für die Vorführung ein paar Orte unentdeckt lassen, sonst
+      zeigt keine Nadel.
 - [ ] **Gerätetest des Foto-Flows.** Der Subfenster-Umbau vom 12.09. ist nur durch `tsc`
       belegt. Kamera, Berechtigung, Auslöser und „Ohne Foto bestätigen" sind asynchron und
       damit ohne Gerät unbewiesen. `npx expo run:ios --device`
@@ -28,6 +34,25 @@
 ---
 
 # Erledigt 11.–12.09.2026
+
+## Council Runde 2, 12.09. Mittag: Replay, KI-Gegenprobe, Kompassnadel
+
+Drei Features aus `docs/council.md` (Runde 2), alle vor dem Freeze gebaut.
+
+- **Netz-Replay.** `network.tsx` hält `replayCount`; der Graph bekommt `completedQuestIds.slice(0, n)`,
+  und weil `Neuron` und `Synapse` ihre Animation beim Mounten fahren, gibt es keine zweite
+  Animationslogik: die Teilliste wächst alle 320 ms, fertig. Selection-Haptik je Knoten, Medium-Schlag,
+  wenn sich eine Datenbrücke schließt. Beginnt bei einem Ort, nicht bei null, sonst springt die
+  Leerkarte dazwischen.
+- **Was eine KI gesagt hätte.** `AI_GUESS` in `build_quests.py` neben `INFO`: 23 vorab erzeugte,
+  selbstsicher falsche Sätze (Claude, 12.09.), Feld `aiGuess` in `quests.json`, schwarze Fläche mit
+  Badge „GERATEN" im Sheet, nur nach dem Fund. Build bricht ab, wenn ein Ort keinen Satz hat.
+  Bewusst nie nachbessern: ein korrigierter KI-Satz wäre selbst wieder eine Abfrage.
+- **Kompassnadel.** `HeadingNeedle.tsx`: Peilung (`bearing` in `lib/net.ts`) minus
+  `Location.watchHeadingAsync`-Heading, kürzester Drehweg über ein kumuliertes Ref, Rotation als
+  Shared Value am React-Render vorbei. Abo lebt nur im offenen Sheet eines unentdeckten Orts und
+  erst, wenn ein Standort da ist. Blass, bis das erste Heading kommt.
+
 
 ## Nachrüstung Quest-Detail, Karte, Netz
 

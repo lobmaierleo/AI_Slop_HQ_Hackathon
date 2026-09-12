@@ -24,6 +24,11 @@ export type PhotoQuest = {
   info: string;
   /** Zwei bis fünf Kennzahlen aus dem Datensatz, Label und Wert getrennt. */
   stats: QuestStat[];
+  /**
+   * Was ein Sprachmodell ohne den Datensatz geantwortet hat -- vorab erzeugt und
+   * bewusst so stehen gelassen. Die Gegenprobe zu `stats`.
+   */
+  aiGuess: string;
   /** Nur an manchen Orten hängt eine Runde Fakt oder Slop. Meist leer. */
   triviaIds: string[];
   waterLiters: number;

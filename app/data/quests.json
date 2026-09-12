@@ -29,6 +29,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Am Hauptplatz gibt es keinen Trinkbrunnen. Die Brunnen dort sind historische Zierbrunnen, deren Wasser keine Trinkwasserqualität hat.",
       "triviaIds": [
         "t8",
         "t9"
@@ -67,6 +68,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Ein Trinkbrunnen am Herbert-Bayer-Platz ist nicht bekannt. Der Platz ist nach dem Wiener Architekten Herbert Bayer benannt.",
       "triviaIds": [
         "t10"
       ],
@@ -104,6 +106,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Der Brunnen am Spielplatz Prunerstift ist ein Zierbrunnen aus den 1970er-Jahren. Das Wasser ist nicht zum Trinken geeignet.",
       "triviaIds": [],
       "waterLiters": 4.8,
       "lat": 48.307556,
@@ -139,6 +142,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Im Park am Hessenplatz steht ein Springbrunnen mit rund zwölf Metern Durchmesser. Trinkwasser gibt es dort nur im Kiosk zu kaufen.",
       "triviaIds": [
         "t13"
       ],
@@ -176,6 +180,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Der Linzer Stadtpark hat drei Trinkbrunnen. Der bekannteste ist der Pegasus-Brunnen am Eingang Huemerstraße.",
       "triviaIds": [],
       "waterLiters": 5.6,
       "lat": 48.30549,
@@ -211,6 +216,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Der Wasserspielplatz im Volksgarten läuft im Kreislauf mit Brauchwasser. Trinken sollte man davon nicht.",
       "triviaIds": [
         "t12"
       ],
@@ -248,6 +254,7 @@
           "value": "80 von 132 Anlagen"
         }
       ],
+      "aiGuess": "Hinter dem Parkbad gibt es eine Handpumpe, die Donauwasser fördert. Als Trinkwasser ist es nicht freigegeben.",
       "triviaIds": [
         "t14"
       ],
@@ -289,6 +296,7 @@
           "value": "98 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Tanne im Donaupark ist etwa 18 Meter hoch und rund 60 Jahre alt. Sie zählt zu den mittelgroßen Bäumen des Parks.",
       "triviaIds": [
         "t1",
         "t3"
@@ -331,6 +339,7 @@
           "value": "23 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Eiche am Bauernberg misst ungefähr 20 Meter. Die höchsten Bäume von Linz stehen im Wasserwald und sind über 50 Meter hoch.",
       "triviaIds": [],
       "waterLiters": 3.0,
       "lat": 48.294545,
@@ -370,6 +379,7 @@
           "value": "317 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Platanen an der Promenade wurden 1985 gepflanzt und sind heute etwa 14 Meter hoch.",
       "triviaIds": [],
       "waterLiters": 2.5,
       "lat": 48.303626,
@@ -409,6 +419,7 @@
           "value": "317 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Rosskastanien werden in Linz selten höher als 15 Meter. Die an der Promenade dürfte bei zwölf bis 14 Metern liegen.",
       "triviaIds": [],
       "waterLiters": 2.4,
       "lat": 48.303925,
@@ -448,6 +459,7 @@
           "value": "1.321 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Platane im Volksgarten ist mit rund 38 Metern der höchste Baum der Linzer Innenstadt.",
       "triviaIds": [],
       "waterLiters": 2.7,
       "lat": 48.295541,
@@ -487,6 +499,7 @@
           "value": "438 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Linde an der Promenade hat einen Stammumfang von etwa 150 Zentimetern und ist rund 16 Meter hoch.",
       "triviaIds": [
         "t2"
       ],
@@ -528,6 +541,7 @@
           "value": "620 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Die Platane im Stadtpark ist etwa 18 Meter hoch und hat einen Stammumfang von rund zwei Metern.",
       "triviaIds": [],
       "waterLiters": 2.6,
       "lat": 48.30568,
@@ -567,6 +581,7 @@
           "value": "620 von 27.004 Bäumen"
         }
       ],
+      "aiGuess": "Am Tummelplatz stehen vor allem Linden. Die einzelne Eiche dort ist ein junger Baum von etwa zehn Metern.",
       "triviaIds": [],
       "waterLiters": 2.3,
       "lat": 48.304431,
@@ -598,6 +613,7 @@
           "value": "156 insgesamt"
         }
       ],
+      "aiGuess": "Das Nordico ist während des Festivals einer der Hauptspielorte mit rund 15 Ausstellungsprojekten auf drei Stockwerken.",
       "triviaIds": [
         "t5",
         "t16"
@@ -640,6 +656,7 @@
           "value": "156 insgesamt"
         }
       ],
+      "aiGuess": "Im OK Linz laufen beim Festival etwa acht Projekte, hauptsächlich Videoinstallationen im Erdgeschoss.",
       "triviaIds": [
         "t4",
         "t7"
@@ -674,6 +691,7 @@
           "value": "156 insgesamt"
         }
       ],
+      "aiGuess": "Der Standort Domgasse 1 der Kunstuniversität wird beim Festival nicht bespielt. Das Programm konzentriert sich auf den Campus am Hauptplatz.",
       "triviaIds": [],
       "waterLiters": 3.2,
       "lat": 48.30561,
@@ -713,6 +731,7 @@
           "value": "156 insgesamt"
         }
       ],
+      "aiGuess": "Das Francisco Carolinum zeigt zum Festival eine einzelne Sonderausstellung mit etwa zehn Arbeiten im zweiten Stock.",
       "triviaIds": [
         "t6"
       ],
@@ -750,6 +769,7 @@
           "value": "282 kartiert"
         }
       ],
+      "aiGuess": "Im Nordico gibt es keinen öffentlich zugänglichen Defibrillator. Das nächste Gerät hängt im Alten Rathaus.",
       "triviaIds": [],
       "waterLiters": 1.8,
       "lat": 48.304057,
@@ -785,6 +805,7 @@
           "value": "282 kartiert"
         }
       ],
+      "aiGuess": "Linz hat rund 90 öffentlich registrierte Defibrillatoren. Im OK Kulturquartier ist keiner verzeichnet.",
       "triviaIds": [],
       "waterLiters": 1.8,
       "lat": 48.303005,
@@ -820,6 +841,7 @@
           "value": "134 Standorte"
         }
       ],
+      "aiGuess": "Der Hotspot am Taubenmarkt wurde 2015 eingerichtet und zählt etwa 2.000 Verbindungen im Jahr.",
       "triviaIds": [],
       "waterLiters": 2.8,
       "lat": 48.303976,
@@ -855,6 +877,7 @@
           "value": "134 Standorte"
         }
       ],
+      "aiGuess": "Das freie WLAN am Hauptplatz gibt es seit 2012. Linz betreibt insgesamt rund 40 solcher Hotspots.",
       "triviaIds": [
         "t11",
         "t15"

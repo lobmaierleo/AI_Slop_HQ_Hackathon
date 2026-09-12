@@ -11,6 +11,7 @@ import { BrutSurface } from '@/components/BrutSurface';
 import { CategoryShape } from '@/components/CategoryShape';
 import { FactOrSlopCard } from '@/components/FactOrSlopCard';
 import { HapticButton } from '@/components/HapticButton';
+import { HeadingNeedle } from '@/components/HeadingNeedle';
 import { Symbol } from '@/components/Symbol';
 import { CATEGORY_META, categoryOf } from '@/lib/categories';
 import { openDirections } from '@/lib/directions';
@@ -236,7 +237,19 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
               </View>
               <Text style={styles.title}>{quest.title}</Text>
               <Text style={styles.location}>{quest.location}</Text>
-              {distanceLabel ? <Text style={styles.distance}>{distanceLabel} entfernt</Text> : null}
+              {/* Entfernung plus, solange der Ort noch fehlt, die Nadel, die sich mit
+                  dem Geraet dreht: hingehen statt fragen, in einer Geste. */}
+              {distanceLabel ? (
+                <View style={styles.distanceRow}>
+                  {!done ? <HeadingNeedle lat={quest.lat} lon={quest.lon} /> : null}
+                  <View style={styles.distanceText}>
+                    <Text style={styles.distance}>{distanceLabel} entfernt</Text>
+                    {!done ? (
+                      <Text style={styles.needleHint}>Die Nadel zeigt hin. Dreh dich einmal.</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
             </View>
             <HapticButton
               haptic="light"
@@ -412,6 +425,29 @@ export function QuestDetailSheet({ quest, onClose }: Props) {
               </BrutSurface>
             )}
           </View>
+
+          {/* Die Gegenprobe: was ein Sprachmodell ohne den Datensatz geantwortet
+              haette. Erst nach dem Fund, denn erst dann stehen die echten Zahlen
+              darueber -- vorher gaebe es nichts zu vergleichen. */}
+          {done ? (
+            <View style={styles.section}>
+              <Text style={styles.eyebrow}>WAS EINE KI GESAGT HÄTTE</Text>
+              <BrutSurface tone="ink" radius={THEME.radius.md} contentStyle={styles.aiContent}>
+                <Text style={styles.aiQuote}>„{quest.aiGuess}“</Text>
+                <View style={styles.aiFooter}>
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>GERATEN</Text>
+                  </View>
+                  <Text style={styles.aiNote}>
+                    Sprachmodell, vorab gefragt, ohne Zugriff auf den Datensatz.
+                  </Text>
+                </View>
+              </BrutSurface>
+              <Text style={styles.aiCompare}>
+                Die Kennzahlen oben stammen aus dem Datensatz. Du warst dort.
+              </Text>
+            </View>
+          ) : null}
 
           {/* Fakt oder Slop */}
           {done && trivia.length > 0 ? (
@@ -818,6 +854,61 @@ const styles = StyleSheet.create({
   triviaDoneText: {
     ...THEME.type.body,
     color: THEME.colors.textMuted,
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing.sm,
+    marginTop: THEME.spacing.xs,
+  },
+  distanceText: {
+    flex: 1,
+  },
+  needleHint: {
+    ...THEME.type.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: THEME.colors.textFaint,
+  },
+  // Schwarze Flaeche, helle Schrift: die einzige dunkle Karte im Sheet, damit
+  // der geratene Satz sich vom Datensatz darueber abhebt statt sich einzureihen.
+  aiContent: {
+    gap: THEME.spacing.sm,
+  },
+  aiQuote: {
+    ...THEME.type.bodyStrong,
+    color: THEME.colors.surface,
+  },
+  aiFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing.sm,
+  },
+  aiBadge: {
+    paddingHorizontal: THEME.spacing.sm,
+    paddingVertical: 3,
+    borderRadius: THEME.radius.sm,
+    borderWidth: THEME.border.thin,
+    borderColor: THEME.border.color,
+    backgroundColor: THEME.colors.primary,
+  },
+  aiBadgeText: {
+    ...THEME.type.eyebrow,
+    fontSize: 11,
+    lineHeight: 14,
+    color: THEME.colors.onSignal,
+  },
+  aiNote: {
+    ...THEME.type.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: THEME.colors.surfaceSunken,
+    flex: 1,
+  },
+  aiCompare: {
+    ...THEME.type.captionStrong,
+    color: THEME.colors.textMuted,
+    marginTop: THEME.spacing.sm,
   },
   footer: {
     flexDirection: 'row',

@@ -775,6 +775,61 @@ INFO = {
            "Bestand.",
 }
 
+# Die Gegenprobe im Sheet: was ein Sprachmodell antwortet, wenn man es nach
+# genau diesem Ort fragt -- ohne Zugriff auf den Datensatz. Vorab erzeugt
+# (Claude, 12.09.2026) und bewusst so stehen gelassen, Fehler eingeschlossen.
+# Der Satz steht schwarz unter den echten Kennzahlen; er soll nicht luegen,
+# sondern selbstsicher raten, so wie es eine Abfrage eben tut. Nie nachbessern:
+# ein korrigierter KI-Satz waere selbst wieder eine Abfrage.
+AI_GUESS = {
+    "p1": "Am Hauptplatz gibt es keinen Trinkbrunnen. Die Brunnen dort sind historische "
+          "Zierbrunnen, deren Wasser keine Trinkwasserqualität hat.",
+    "p2": "Ein Trinkbrunnen am Herbert-Bayer-Platz ist nicht bekannt. Der Platz ist nach "
+          "dem Wiener Architekten Herbert Bayer benannt.",
+    "p3": "Der Brunnen am Spielplatz Prunerstift ist ein Zierbrunnen aus den 1970er-Jahren. "
+          "Das Wasser ist nicht zum Trinken geeignet.",
+    "p4": "Im Park am Hessenplatz steht ein Springbrunnen mit rund zwölf Metern Durchmesser. "
+          "Trinkwasser gibt es dort nur im Kiosk zu kaufen.",
+    "p5": "Der Linzer Stadtpark hat drei Trinkbrunnen. Der bekannteste ist der "
+          "Pegasus-Brunnen am Eingang Huemerstraße.",
+    "p6": "Der Wasserspielplatz im Volksgarten läuft im Kreislauf mit Brauchwasser. "
+          "Trinken sollte man davon nicht.",
+    "p7": "Hinter dem Parkbad gibt es eine Handpumpe, die Donauwasser fördert. Als "
+          "Trinkwasser ist es nicht freigegeben.",
+    "p8": "Die Tanne im Donaupark ist etwa 18 Meter hoch und rund 60 Jahre alt. Sie zählt "
+          "zu den mittelgroßen Bäumen des Parks.",
+    "p22": "Die Eiche am Bauernberg misst ungefähr 20 Meter. Die höchsten Bäume von Linz "
+           "stehen im Wasserwald und sind über 50 Meter hoch.",
+    "p9": "Die Platanen an der Promenade wurden 1985 gepflanzt und sind heute etwa "
+          "14 Meter hoch.",
+    "p10": "Rosskastanien werden in Linz selten höher als 15 Meter. Die an der Promenade "
+           "dürfte bei zwölf bis 14 Metern liegen.",
+    "p23": "Die Platane im Volksgarten ist mit rund 38 Metern der höchste Baum der "
+           "Linzer Innenstadt.",
+    "p11": "Die Linde an der Promenade hat einen Stammumfang von etwa 150 Zentimetern "
+           "und ist rund 16 Meter hoch.",
+    "p12": "Die Platane im Stadtpark ist etwa 18 Meter hoch und hat einen Stammumfang "
+           "von rund zwei Metern.",
+    "p13": "Am Tummelplatz stehen vor allem Linden. Die einzelne Eiche dort ist ein "
+           "junger Baum von etwa zehn Metern.",
+    "p14": "Das Nordico ist während des Festivals einer der Hauptspielorte mit rund "
+           "15 Ausstellungsprojekten auf drei Stockwerken.",
+    "p15": "Im OK Linz laufen beim Festival etwa acht Projekte, hauptsächlich "
+           "Videoinstallationen im Erdgeschoss.",
+    "p16": "Der Standort Domgasse 1 der Kunstuniversität wird beim Festival nicht "
+           "bespielt. Das Programm konzentriert sich auf den Campus am Hauptplatz.",
+    "p17": "Das Francisco Carolinum zeigt zum Festival eine einzelne Sonderausstellung "
+           "mit etwa zehn Arbeiten im zweiten Stock.",
+    "p18": "Im Nordico gibt es keinen öffentlich zugänglichen Defibrillator. Das nächste "
+           "Gerät hängt im Alten Rathaus.",
+    "p19": "Linz hat rund 90 öffentlich registrierte Defibrillatoren. Im OK Kulturquartier "
+           "ist keiner verzeichnet.",
+    "p20": "Der Hotspot am Taubenmarkt wurde 2015 eingerichtet und zählt etwa "
+           "2.000 Verbindungen im Jahr.",
+    "p21": "Das freie WLAN am Hauptplatz gibt es seit 2012. Linz betreibt insgesamt "
+           "rund 40 solcher Hotspots.",
+}
+
 # Fakt oder Slop wird nicht mehr am Stueck gespielt, sondern haengt an
 # einzelnen Orten. Die Zuordnung ist thematisch: die Aussage gehoert zu dem
 # Datensatz, in dem man gerade steht. Zwoelf der 23 Orte haben keine -- sonst
@@ -822,6 +877,9 @@ def main() -> None:
         stats = stats_for(anchor["kind"], row, anchor)
         if len(stats) < 2:
             die(f"{quest['id']}: Datensatz gibt nur {len(stats)} Kennzahlen her")
+        ai_guess = AI_GUESS.get(quest["id"])
+        if not ai_guess:
+            die(f"{quest['id']}: kein KI-Satz in AI_GUESS")
 
         photo_out.append({
             "id": quest["id"],
@@ -835,12 +893,17 @@ def main() -> None:
             "fact": fact,
             "info": info,
             "stats": stats,
+            "aiGuess": ai_guess,
             "triviaIds": TRIVIA_FOR.get(quest["id"], []),
             "waterLiters": quest["waterLiters"],
             "lat": round(lat, 6),
             "lon": round(lon, 6),
             "source": quest["source"],
         })
+
+    for quest_id in AI_GUESS:
+        if quest_id not in seen_ids:
+            die(f"AI_GUESS verweist auf unbekannte Quest {quest_id}")
 
     trivia_out = []
     for item in TRIVIA:

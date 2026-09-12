@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrutButton } from '@/components/BrutButton';
 import { BrutSurface, type Tone } from '@/components/BrutSurface';
 import { QuestDetailSheet } from '@/components/QuestDetailSheet';
 import { SynapseGraph } from '@/components/SynapseGraph';
@@ -12,14 +14,74 @@ import { THEME } from '@/theme/colors';
 /** Seitliche Luft des Graphen -- er darf breiter sein als der Fliesstext. */
 const GRAPH_MARGIN = THEME.spacing.xs;
 
+/**
+ * Takt des Replays. Der Pop eines Knotens dauert 420 ms, das Zeichnen einer
+ * Kante 650 ms -- ein Schritt alle 320 ms laesst beides ueberlappen, und das
+ * ganze Netz steht bei 23 Orten nach gut sieben Sekunden wieder.
+ */
+const REPLAY_STEP_MS = 320;
+/** Pause nach dem letzten Knoten, bevor der Knopf wieder frei ist. */
+const REPLAY_SETTLE_MS = 700;
+
 export default function NetworkScreen() {
   const { completedQuestIds, savedWaterLiters, answeredTriviaIds, correctTriviaIds } = useGameStore();
   const { width } = useWindowDimensions();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
+  /**
+   * Das Replay: `null` heisst Ruhe, das ganze Netz steht. Eine Zahl heisst,
+   * so viele der entdeckten Orte sind gerade sichtbar -- in der echten
+   * Reihenfolge des Fundes, denn `completedQuestIds` wird beim Entdecken
+   * hinten angehaengt und nie umsortiert. Der Graph bekommt nur die
+   * Teilliste; Knoten und Kanten, die dazukommen, animieren sich von selbst,
+   * weil sie neu gemountet werden. Es gibt also keine zweite Animationslogik,
+   * nur den Fund noch einmal, Schritt fuer Schritt.
+   */
+  const [replayCount, setReplayCount] = useState<number | null>(null);
+  const shownIds = useMemo(
+    () => (replayCount === null ? completedQuestIds : completedQuestIds.slice(0, replayCount)),
+    [completedQuestIds, replayCount],
+  );
+
+  useEffect(() => {
+    if (replayCount === null) return;
+    if (replayCount >= completedQuestIds.length) {
+      const settle = setTimeout(() => setReplayCount(null), REPLAY_SETTLE_MS);
+      return () => clearTimeout(settle);
+    }
+    const step = setTimeout(() => {
+      const next = replayCount + 1;
+      // Eine Datenbruecke, die sich gerade schliesst, schlaegt haerter an als
+      // ein blosser Knoten -- man soll den Unterschied in der Hand spueren.
+      const before = new Set(
+        activeEdges(completedQuestIds.slice(0, replayCount)).map((e) => `${e.a}-${e.b}`),
+      );
+      const closesBridge = activeEdges(completedQuestIds.slice(0, next)).some(
+        (e) => e.kind === 'space' && !before.has(`${e.a}-${e.b}`),
+      );
+      (closesBridge
+        ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+        : Haptics.selectionAsync()
+      ).catch(() => undefined);
+      setReplayCount(next);
+    }, REPLAY_STEP_MS);
+    return () => clearTimeout(step);
+  }, [replayCount, completedQuestIds]);
+
+  const replaying = replayCount !== null;
+  const startReplay = () => {
+    if (replaying || completedQuestIds.length < 2) return;
+    setSelectedId(null);
+    // Mit dem ersten Ort beginnen, nicht mit null Orten: ein leeres Netz
+    // zeigt die Leerkarte statt des Rahmens, und der Sprung dazwischen ruckelt.
+    setReplayCount(1);
+    Haptics.selectionAsync().catch(() => undefined);
+  };
+
   const size = width - GRAPH_MARGIN * 2;
-  const active = useMemo(() => activeEdges(completedQuestIds).length, [completedQuestIds]);
+  // Waehrend des Replays zaehlt die Kachel mit hoch -- dieselbe Teilliste wie der Graph.
+  const active = useMemo(() => activeEdges(shownIds).length, [shownIds]);
 
   // Ohne Antwort gibt es keine Quote. 100 % bei null Versuchen waere gelogen.
   const autonomy = answeredTriviaIds.length
@@ -70,12 +132,25 @@ export default function NetworkScreen() {
         <View style={styles.graphWrap}>
           <SynapseGraph
             size={size}
-            completedIds={completedQuestIds}
+            completedIds={shownIds}
             selectedId={selectedId}
             onSelect={setSelectedId}
             scrollRef={scrollRef}
           />
         </View>
+
+        {/* Der Spaziergang noch einmal, in Sekunden: das Netz waechst in der
+            Reihenfolge nach, in der die Orte wirklich gefunden wurden. Erst ab
+            zwei Orten -- vorher gibt es nichts, das wachsen koennte. */}
+        {completedQuestIds.length >= 2 ? (
+          <BrutButton
+            label={replaying ? 'Wächst …' : 'Nochmal wachsen lassen'}
+            icon="arrow.counterclockwise"
+            disabled={replaying}
+            onPress={startReplay}
+            accessibilityLabel="Netz noch einmal wachsen lassen"
+          />
+        ) : null}
 
         {completedQuestIds.length > 0 ? (
           <Text style={styles.hint}>Tippe einen Knoten an, um zu sehen, was dort steht.</Text>

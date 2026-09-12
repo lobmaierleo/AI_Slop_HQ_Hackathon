@@ -50,3 +50,23 @@ export function meters(
 export function formatDistance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
 }
+
+/**
+ * Peilung von A nach B in Grad: 0 ist Norden, dann im Uhrzeigersinn. Die
+ * Kompassnadel zieht davon das Heading des Geraets ab und zeigt so auf den
+ * Ort, egal wie man das Telefon haelt.
+ */
+export function bearing(
+  latA: number,
+  lonA: number,
+  latB: number,
+  lonB: number,
+): number {
+  const rad = Math.PI / 180;
+  const p1 = latA * rad;
+  const p2 = latB * rad;
+  const dl = (lonB - lonA) * rad;
+  const y = Math.sin(dl) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}

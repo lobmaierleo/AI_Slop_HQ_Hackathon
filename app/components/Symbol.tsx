@@ -39,6 +39,7 @@ const SYMBOLS = {
   circle: 'circle',
   'trophy.fill': 'trophy',
   'arrow.up.left.and.arrow.down.right': 'zoom_out_map',
+  'arrow.counterclockwise': 'replay',
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLS;
