@@ -742,150 +742,171 @@
     },
     {
       "id": "p18",
-      "type": "power",
-      "symbol": "bolt.heart.fill",
-      "badge": "Notfallnetz",
-      "title": "Defibrillator im Nordico",
-      "location": "Infopoint/Kasse, Dametzstraße 23",
-      "desc": "Am Infopoint hängt ein Defibrillator. Finde ihn und merk dir, wo genau.",
-      "teaser": "282 Geräte sind in Linz kartiert. Eines steht dort, wo du gerade stehst.",
-      "fact": "Defibrillator Lifepak CR+, betrieben von NORDICO Stadtmuseum Linz. Genauer Standort: Nordico Infopoint/Kasse. Adresse Dametzstraße 23.",
-      "info": "Die Stadt veröffentlicht die Standorte ihrer öffentlich zugänglichen Defibrillatoren mit Betreiber, Gerätetyp und Stockwerk. Dass ein Festivalort zugleich ein Eintrag in diesem Datensatz ist, sieht man erst, wenn man beide Tabellen übereinanderlegt — und im Ernstfall zählt genau das.",
+      "type": "art",
+      "symbol": "sparkles",
+      "badge": "Freiluft-Kunst",
+      "title": "Komorebi im Sonnenhof",
+      "location": "Sonnenhof, Prunerstift",
+      "desc": "Finde die kybernetische Licht- und Klanginstallation im lauschigen Innenhof des Sonnenhofs.",
+      "teaser": "Ein Lichtspiel aus Klang und Schatten – ganz ohne Bildschirm und ohne KI-Rendering.",
+      "fact": "Festival-Kunstort Sonnenhof. Bereich OK QUARTER. Als Outdoor unter freiem Himmel geführt.",
+      "info": "Der Sonnenhof im OK Quarter ist ein versteckter barocker Rückzugsort. Hier wird Medienkunst analog und sinnlich: Die Installation Komorebi nutzt keine Bildschirme, sondern übersetzt das Spiel des Sonnenlichts durch Baumkronen in akustische und kinetische Impulse — Technologie im Dialog mit der Natur.",
       "stats": [
         {
-          "label": "Betreiber",
-          "value": "NORDICO Stadtmuseum Linz"
+          "label": "Kunstprojekt",
+          "value": "Komorebi"
         },
         {
-          "label": "Gerät",
-          "value": "Lifepak CR+"
+          "label": "Künstler:in",
+          "value": "Matteo Holyoke Marangoni (NL), Dieter Vandoren (BE/NL)"
         },
         {
-          "label": "Genauer Standort",
-          "value": "Nordico Infopoint/Kasse"
+          "label": "Festivalbereich",
+          "value": "Ok Quarter"
         },
         {
-          "label": "Geräte in Linz",
-          "value": "282 kartiert"
+          "label": "Projekte hier",
+          "value": "2"
+        },
+        {
+          "label": "Format",
+          "value": "Freiluft / Outdoor"
         }
       ],
-      "aiGuess": "Im Nordico gibt es keinen öffentlich zugänglichen Defibrillator. Das nächste Gerät hängt im Alten Rathaus.",
-      "triviaIds": [],
-      "waterLiters": 1.8,
-      "lat": 48.304057,
-      "lon": 14.291343,
-      "source": "Defibrillatoren Linz × Festival-Spielorte"
+      "aiGuess": "Der Sonnenhof ist ein privater Innenhof des Bischöflichen Palais und während des Festivals für die Öffentlichkeit geschlossen.",
+      "triviaIds": [
+        "t11"
+      ],
+      "waterLiters": 3.5,
+      "lat": 48.30405,
+      "lon": 14.29407,
+      "source": "Ars Electronica Festival 2026"
     },
     {
       "id": "p19",
-      "type": "power",
-      "symbol": "bolt.heart.fill",
-      "badge": "Notfallnetz",
-      "title": "Defibrillator im OK Kulturquartier",
-      "location": "Infopoint, OK-Platz 1",
-      "desc": "Such das Gerät am Infopoint und prüf die Standortangabe aus dem Datensatz.",
-      "teaser": "Ein Datensatz, der im Ernstfall zählt. Deshalb lohnt es, ihn selbst zu kennen.",
-      "fact": "Defibrillator Heartstart FRx, betrieben von OÖ Landes-Kultur GmbH. Genauer Standort: OK OÖ Kulturquartier Infopoint. Adresse OK-Platz 1.",
-      "info": "Ein Defibrillator ist nur so gut wie das Wissen darum, wo er hängt. Der Datensatz nennt das Stockwerk und den Raum, aber keine Öffnungszeit — ob das Gerät nachts erreichbar ist, steht nirgends. Solche Lücken findet man nur vor Ort.",
+      "type": "art",
+      "symbol": "sparkles",
+      "badge": "Freiluft-Kunst",
+      "title": "SoundPark an der Donau",
+      "location": "Donaupark, Flussufer",
+      "desc": "Spüre den Klanginstallationen entlang der Donau nach und lausche den Schwingungen des Wassers.",
+      "teaser": "Wolfgang Dorningers akustische Vermessung der Donau. Reale Klangwellen statt MP3-Synthese.",
+      "fact": "Festival-Kunstort Donaupark. Bereich SATELLITE LOCATIONS. Als Outdoor unter freiem Himmel geführt.",
+      "info": "Der Donaupark ist seit den ersten Klangwolken 1979 der Resonanzraum der Linzer Medienkunst. Mit SoundPark verwandelt Wolfgang Dorninger das Flussufer in eine akustische Landschaft, die auf Schwingungen und Wetter reagiert — Medienkunst unter freiem Himmel statt im abgedunkelten White Cube.",
       "stats": [
         {
-          "label": "Betreiber",
-          "value": "OÖ Landes-Kultur GmbH"
+          "label": "Kunstprojekt",
+          "value": "SoundPark"
         },
         {
-          "label": "Gerät",
-          "value": "Heartstart FRx"
+          "label": "Künstler:in",
+          "value": "Wolfgang “Fadi” Dorninger (AT)"
         },
         {
-          "label": "Genauer Standort",
-          "value": "OK OÖ Kulturquartier Infopoint"
+          "label": "Festivalbereich",
+          "value": "Satellite Locations"
         },
         {
-          "label": "Geräte in Linz",
-          "value": "282 kartiert"
+          "label": "Projekte hier",
+          "value": "4"
+        },
+        {
+          "label": "Format",
+          "value": "Freiluft / Outdoor"
         }
       ],
-      "aiGuess": "Linz hat rund 90 öffentlich registrierte Defibrillatoren. Im OK Kulturquartier ist keiner verzeichnet.",
-      "triviaIds": [],
-      "waterLiters": 1.8,
-      "lat": 48.303005,
-      "lon": 14.290711,
-      "source": "Defibrillatoren Linz × Festival-Spielorte"
+      "aiGuess": "Im Donaupark finden während der Ars Electronica ausschließlich die abendlichen Konzerte statt. Permanente Klanginstallationen gibt es dort nicht.",
+      "triviaIds": [
+        "t15"
+      ],
+      "waterLiters": 3.8,
+      "lat": 48.30963,
+      "lon": 14.29095,
+      "source": "Ars Electronica Festival 2026"
     },
     {
       "id": "p20",
-      "type": "wifi",
-      "symbol": "wifi",
-      "badge": "Freies WLAN",
-      "title": "Hotspot Taubenmarkt",
-      "location": "Öffentliches WLAN, Taubenmarkt",
-      "desc": "Stell dich in die Mitte und sieh nach, ob das freie Netz wirklich auftaucht.",
-      "teaser": "Gratis-WLAN seit Jahren. Die Stadt führt Buch darüber, wie viele es nutzen.",
-      "fact": "Freier Hotspot der Stadt Linz: Taubenmarkt. Adresse Taubenmarkt. In Betrieb seit 2006.",
-      "info": "Der Taubenmarkt ist einer der ältesten Hotspot-Standorte der Stadt und meldet seine Nutzung monatlich an den offenen Datensatz. Gezählt werden Verbindungen, nicht Menschen — wer zweimal am Tag vorbeigeht, steht zweimal in der Statistik.",
+      "type": "history",
+      "symbol": "building.columns.fill",
+      "badge": "Zeitzeugen",
+      "title": "Landhaus Arkadenhof",
+      "location": "Renaissance-Arkadenhof, Altstadt",
+      "desc": "Betritt den historischen Arkadenhof, wo Kepler lehrte und heute Bürger für nachhaltige Digitalisierung streiten.",
+      "teaser": "Renaissancebau von 1568. Hier verhandelt die Bürgerinitiative Kronstorf das Kühlwasser von KI-Rechenzentren.",
+      "fact": "Historischer Spielort Landhaus. Bereich SATELLITE LOCATIONS. Schnittpunkt von Stadtgeschichte und Festivaldiskurs.",
+      "info": "Das Linzer Landhaus mit seinem prächtigen Renaissance-Arkadenhof von 1568 ist das politische Zentrum Oberösterreichs. Hier unterrichtete einst Johannes Kepler. Beim Festival wird das Landhaus zum Forum realer Kontroversen: Die Bürgerinitiative Kronstorf streitet hier gegen den extremen Wasser- und Energiehunger neuer Megarechenzentren.",
       "stats": [
         {
-          "label": "Adresse",
-          "value": "Taubenmarkt"
+          "label": "Historischer Ort",
+          "value": "Landhaus"
         },
         {
-          "label": "In Betrieb seit",
-          "value": "2006"
+          "label": "Festival-Projekt",
+          "value": "Bürger:inneninitiative Rechenzentrum Kronstorf"
         },
         {
-          "label": "Verbindungen 2022",
-          "value": "18.036"
+          "label": "Festivalbereich",
+          "value": "Satellite Locations"
         },
         {
-          "label": "Hotspots in Linz",
-          "value": "134 Standorte"
+          "label": "Projekte hier",
+          "value": "1"
+        },
+        {
+          "label": "Bedeutung",
+          "value": "Stadtgeschichte & Diskurs"
         }
       ],
-      "aiGuess": "Der Hotspot am Taubenmarkt wurde 2015 eingerichtet und zählt etwa 2.000 Verbindungen im Jahr.",
-      "triviaIds": [],
-      "waterLiters": 2.8,
-      "lat": 48.303976,
-      "lon": 14.288253,
-      "source": "Hotspot-Nutzung Linz"
+      "aiGuess": "Das Linzer Landhaus dient während des Festivals ausschließlich als VIP-Empfangsort der Landesregierung ohne öffentliche Programmpunkte.",
+      "triviaIds": [
+        "t17"
+      ],
+      "waterLiters": 3.2,
+      "lat": 48.30376,
+      "lon": 14.28559,
+      "source": "Landhaus Linz × Festival Diskurs"
     },
     {
       "id": "p21",
-      "type": "wifi",
-      "symbol": "wifi",
-      "badge": "Freies WLAN",
-      "title": "Hotspot Hauptplatz",
-      "location": "Öffentliches WLAN, Hauptplatz",
-      "desc": "Der meistgenutzte Hotspot der Stadt. Prüf selbst, ob er hält, was die Zahlen sagen.",
-      "teaser": "Zehntausende Verbindungen im Jahr. Deine wäre eine davon — oder eben nicht.",
-      "fact": "Freier Hotspot der Stadt Linz: Hauptplatz. Adresse Hauptplatz. In Betrieb seit 2008.",
-      "info": "Der Hauptplatz-Hotspot ist der meistgenutzte der Stadt, und das lässt sich in der Nutzungstabelle nachzählen. Das freie Netz der Stadt und die Frage, wie viel Wasser eine KI-Abfrage kostet, hängen direkt zusammen: die Verbindung ist gratis, die Antwort dahinter nicht.",
+      "type": "history",
+      "symbol": "building.columns.fill",
+      "badge": "Zeitzeugen",
+      "title": "Maindeck Stadtwerkstatt",
+      "location": "Donauufer beim AEC",
+      "desc": "Geh ans Donauufer zur Stadtwerkstatt – dem Linzer Urgestein autonomer Medienkritik.",
+      "teaser": "Seit 1979 Gegenpol zum Tech-Optimismus: Utopischer Widerstand gegen Elon Musk und Mars-Kolonien.",
+      "fact": "Historischer Spielort Maindeck. Bereich DANUBE TRIANGLE. Schnittpunkt von Stadtgeschichte und Festivaldiskurs.",
+      "info": "Die Stadtwerkstatt (STWST) am Donauufer direkt gegenüber dem Ars Electronica Center wurde 1979 als autonomes Kulturzentrum gegründet. Seit jeher bildet sie den kritischen, subversiven Gegenpol zum technologischen Mainstream. Ihr Projekt am Maindeck setzt auf kosmischen Widerstand statt Tech-Milliardärs-Utopien.",
       "stats": [
         {
-          "label": "Adresse",
-          "value": "Hauptplatz"
+          "label": "Historischer Ort",
+          "value": "Maindeck"
         },
         {
-          "label": "In Betrieb seit",
-          "value": "2008"
+          "label": "Festival-Projekt",
+          "value": "For Sun Ra on Saturn (Against Elon on Mars)"
         },
         {
-          "label": "Verbindungen 2022",
-          "value": "19.449"
+          "label": "Festivalbereich",
+          "value": "Danube Triangle"
         },
         {
-          "label": "Hotspots in Linz",
-          "value": "134 Standorte"
+          "label": "Projekte hier",
+          "value": "5"
+        },
+        {
+          "label": "Bedeutung",
+          "value": "Stadtgeschichte & Diskurs"
         }
       ],
-      "aiGuess": "Das freie WLAN am Hauptplatz gibt es seit 2012. Linz betreibt insgesamt rund 40 solcher Hotspots.",
+      "aiGuess": "Das Maindeck der Stadtwerkstatt ist eine reine Gastronomiefläche. Kunstprojekte werden dort aus Sicherheitsgründen nicht ausgestellt.",
       "triviaIds": [
-        "t11",
-        "t15"
+        "t18"
       ],
-      "waterLiters": 3.0,
-      "lat": 48.305455,
-      "lon": 14.286804,
-      "source": "Hotspot-Nutzung Linz"
+      "waterLiters": 3.4,
+      "lat": 48.30996,
+      "lon": 14.28474,
+      "source": "STWST Linz × Festival 2026"
     }
   ],
   "triviaQuests": [
@@ -951,9 +972,9 @@
     },
     {
       "id": "t11",
-      "statement": "Am Linzer Hauptplatz ist das freie WLAN der Stadt aus Sicherheitsgründen abgeschaltet.",
-      "isFact": false,
-      "explanation": "Slop. Der Hauptplatz betreibt den meistgenutzten Hotspot der ganzen Stadt."
+      "statement": "Im offiziellen Festivalprogramm gibt es ein Performance-Projekt namens „The Elon Musk Antagonist“.",
+      "isFact": true,
+      "explanation": "Maria Muhar und Herbert Kotschnig treten mit genau diesem Projekt am Linzer Hauptplatz auf."
     },
     {
       "id": "t12",
@@ -975,15 +996,27 @@
     },
     {
       "id": "t15",
-      "statement": "Die Radverkehrs-Zählstellen der Stadt erfassen auch, wie viele Menschen zu Fuß über den Hauptplatz gehen.",
-      "isFact": false,
-      "explanation": "Slop. Die Zählstellen zählen Radfahrten. Fußgänger:innen kommen darin nicht vor."
+      "statement": "Die Stadtwerkstatt Linz bespielt das Donauufer mit einem Programm gegen die Mars-Kolonisierung von Elon Musk.",
+      "isFact": true,
+      "explanation": "„For Sun Ra on Saturn (Against Elon on Mars)“ steht als Projekt im offiziellen Festivalkatalog."
     },
     {
       "id": "t16",
       "statement": "Im Festivalprogramm stehen 43 Beiträge, die komplett ohne Sprache auskommen.",
       "isFact": true,
       "explanation": "43-mal ist als Sprache „nonverbal“ hinterlegt. Klingt erfunden, steht aber im Export."
+    },
+    {
+      "id": "t17",
+      "statement": "Im Arkadenhof des Linzer Landhauses wird während des Festivals ein geheimes Quantencomputing-Testlabor betrieben.",
+      "isFact": false,
+      "explanation": "Slop. Im Landhaus verhandelt eine reale Bürgerinitiative den immensen Kühlwasserverbrauch von Rechenzentren."
+    },
+    {
+      "id": "t18",
+      "statement": "Die Stadtwerkstatt Linz am Donauufer wurde im selben Jahr gegründet wie das Ars Electronica Festival: 1979.",
+      "isFact": true,
+      "explanation": "Beide Institutionen entstanden 1979 — seither ist die STWST der autonome und medienkritische Gegenpol."
     }
   ]
 }

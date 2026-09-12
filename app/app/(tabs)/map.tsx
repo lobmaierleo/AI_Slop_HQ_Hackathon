@@ -50,6 +50,25 @@ function computeStartRegion(): Region {
 
 const START_REGION = computeStartRegion();
 
+/* --- TEMPORAERE DIAGNOSE (wieder entfernen, sobald die Ursache steht) ---
+ *
+ * Drei Fragen, die ein einziger Pinch beantwortet:
+ *  1. render  -- rendert die `MapView` waehrend der Geste neu?
+ *  2. start   -- kommt die Geste ueberhaupt als Geste an (`isGesture`)?
+ *  3. done    -- steht der `longitudeDelta` danach kleiner, oder springt er
+ *                auf den Ausgangswert zurueck?
+ * Die Rueckrufe stehen auf Modulebene, damit sie stabil sind und die
+ * `memo`-Kette um `MapCanvas` nicht selbst aufbrechen.
+ */
+let canvasRenders = 0;
+const logRegion = (tag: string) => (region: Region, details: { isGesture?: boolean }) => {
+  console.log(
+    `[zoom] ${tag} isGesture=${details.isGesture} lonDelta=${region.longitudeDelta.toFixed(6)}`,
+  );
+};
+const onRegionStart = logRegion('start');
+const onRegionDone = logRegion('done ');
+
 /**
  * `showsPointsOfInterests` wirkt nur auf Apple Maps. Auf Android blendet erst
  * dieser Stil Googles eigene Beschriftungen aus -- sonst konkurrieren sie mit
@@ -193,8 +212,12 @@ const MapCanvas = memo(function MapCanvas({
   onSelect: (quest: PhotoQuest) => void;
   onBackground: () => void;
 }) {
+  // TEMPORAERE DIAGNOSE
+  canvasRenders += 1;
+  console.log(`[zoom] render #${canvasRenders}`);
+
   // Kontextschicht: eine aktive Kategorie zeigt nicht nur ihre Quests, sondern
-  // den ganzen Linzer Datensatz dahinter. Fuer `tree`, `power` und `wifi` gibt
+  // den ganzen Linzer Datensatz dahinter. Fuer `tree`, `art` und `history` gibt
   // es in data/places.json keine solche Schicht -- dort erscheinen nur die
   // Quests, das ist so vorgesehen.
   const venueMarkers = useMemo(
@@ -385,6 +408,8 @@ const MapCanvas = memo(function MapCanvas({
       rotateEnabled={false}
       pitchEnabled={false}
       onPress={onBackground}
+      onRegionChangeStart={onRegionStart}
+      onRegionChangeComplete={onRegionDone}
     >
       {active.water ? fountainMarkers : null}
       {active.venue ? venueMarkers : null}

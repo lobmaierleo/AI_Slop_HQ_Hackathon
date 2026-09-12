@@ -134,7 +134,7 @@ def resolve(anchor: dict) -> tuple[float, float, dict]:
     if kind == "defi":
         row = unique(DEFI_BY_KEY, (anchor["address"], anchor["spot"]), "Defibrillator")
         return float(row["lat"]), float(row["lon"]), row
-    if kind == "venue":
+    if kind in ("venue", "art", "history"):
         row = unique(VENUE_BY_NAME, anchor["name"], "Spielort")
         return float(row["lat"]), float(row["lon"]), row
     die(f"unbekannte Ankerart {kind!r}")
@@ -203,6 +203,20 @@ def fact_for(kind: str, row: dict) -> str:
             f"Festival-Spielort {name}." if name else "",
             f"Bereich {area}." if area else "",
             f"Als {typ} geführt." if typ else "",
+        ])
+    if kind == "art":
+        name, area, typ = _val(row, "name"), _val(row, "area"), _val(row, "type")
+        return _join([
+            f"Festival-Kunstort {name}." if name else "",
+            f"Bereich {area}." if area else "",
+            f"Als {typ} unter freiem Himmel geführt." if typ else "",
+        ])
+    if kind == "history":
+        name, area = _val(row, "name"), _val(row, "area")
+        return _join([
+            f"Historischer Spielort {name}." if name else "",
+            f"Bereich {area}." if area else "",
+            "Schnittpunkt von Stadtgeschichte und Festivaldiskurs.",
         ])
     die(f"kein Fakt-Bauplan für Ankerart {kind!r}")
 
@@ -397,43 +411,43 @@ PHOTO = [
         source="Ars Electronica Festival 2026",
         anchor=dict(kind="venue", name="Francisco Carolinum Linz"),
     ),
-    # --- Defibrillatoren am Spielort: Notstrom ----------------------------
+    # --- Freiluft-Kunst: Licht, Klang und Intervention ------------------
     dict(
-        id="p18", type="power", symbol="bolt.heart.fill", badge="Notfallnetz",
-        title="Defibrillator im Nordico",
-        location="Infopoint/Kasse, Dametzstraße 23",
-        desc="Am Infopoint hängt ein Defibrillator. Finde ihn und merk dir, wo genau.",
-        teaser="282 Geräte sind in Linz kartiert. Eines steht dort, wo du gerade stehst.", waterLiters=1.8,
-        source="Defibrillatoren Linz × Festival-Spielorte",
-        anchor=dict(kind="defi", address="Dametzstraße 23", spot="Nordico Infopoint/Kasse"),
+        id="p18", type="art", symbol="sparkles", badge="Freiluft-Kunst",
+        title="Komorebi im Sonnenhof",
+        location="Sonnenhof, Prunerstift",
+        desc="Finde die kybernetische Licht- und Klanginstallation im lauschigen Innenhof des Sonnenhofs.",
+        teaser="Ein Lichtspiel aus Klang und Schatten – ganz ohne Bildschirm und ohne KI-Rendering.", waterLiters=3.5,
+        source="Ars Electronica Festival 2026",
+        anchor=dict(kind="art", name="Sonnenhof", project="Komorebi", artist="Matteo Holyoke Marangoni (NL), Dieter Vandoren (BE/NL)"),
     ),
     dict(
-        id="p19", type="power", symbol="bolt.heart.fill", badge="Notfallnetz",
-        title="Defibrillator im OK Kulturquartier",
-        location="Infopoint, OK-Platz 1",
-        desc="Such das Gerät am Infopoint und prüf die Standortangabe aus dem Datensatz.",
-        teaser="Ein Datensatz, der im Ernstfall zählt. Deshalb lohnt es, ihn selbst zu kennen.", waterLiters=1.8,
-        source="Defibrillatoren Linz × Festival-Spielorte",
-        anchor=dict(kind="defi", address="OK-Platz 1", spot="OK OÖ Kulturquartier Infopoint"),
+        id="p19", type="art", symbol="sparkles", badge="Freiluft-Kunst",
+        title="SoundPark an der Donau",
+        location="Donaupark, Flussufer",
+        desc="Spüre den Klanginstallationen entlang der Donau nach und lausche den Schwingungen des Wassers.",
+        teaser="Wolfgang Dorningers akustische Vermessung der Donau. Reale Klangwellen statt MP3-Synthese.", waterLiters=3.8,
+        source="Ars Electronica Festival 2026",
+        anchor=dict(kind="art", name="Donaupark", project="SoundPark", artist="Wolfgang “Fadi” Dorninger (AT)"),
     ),
-    # --- Hotspots: Bandbreite ---------------------------------------------
+    # --- Urbane Zeitzeugen: Geschichte trifft Diskurs ---------------------
     dict(
-        id="p20", type="wifi", symbol="wifi", badge="Freies WLAN",
-        title="Hotspot Taubenmarkt",
-        location="Öffentliches WLAN, Taubenmarkt",
-        desc="Stell dich in die Mitte und sieh nach, ob das freie Netz wirklich auftaucht.",
-        teaser="Gratis-WLAN seit Jahren. Die Stadt führt Buch darüber, wie viele es nutzen.", waterLiters=2.8,
-        source="Hotspot-Nutzung Linz",
-        anchor=dict(kind="hotspot", name="Taubenmarkt"),
+        id="p20", type="history", symbol="building.columns.fill", badge="Zeitzeugen",
+        title="Landhaus Arkadenhof",
+        location="Renaissance-Arkadenhof, Altstadt",
+        desc="Betritt den historischen Arkadenhof, wo Kepler lehrte und heute Bürger für nachhaltige Digitalisierung streiten.",
+        teaser="Renaissancebau von 1568. Hier verhandelt die Bürgerinitiative Kronstorf das Kühlwasser von KI-Rechenzentren.", waterLiters=3.2,
+        source="Landhaus Linz × Festival Diskurs",
+        anchor=dict(kind="history", name="Landhaus", project="Bürger:inneninitiative Rechenzentrum Kronstorf"),
     ),
     dict(
-        id="p21", type="wifi", symbol="wifi", badge="Freies WLAN",
-        title="Hotspot Hauptplatz",
-        location="Öffentliches WLAN, Hauptplatz",
-        desc="Der meistgenutzte Hotspot der Stadt. Prüf selbst, ob er hält, was die Zahlen sagen.",
-        teaser="Zehntausende Verbindungen im Jahr. Deine wäre eine davon — oder eben nicht.", waterLiters=3.0,
-        source="Hotspot-Nutzung Linz",
-        anchor=dict(kind="hotspot", name="Hauptplatz"),
+        id="p21", type="history", symbol="building.columns.fill", badge="Zeitzeugen",
+        title="Maindeck Stadtwerkstatt",
+        location="Donauufer beim AEC",
+        desc="Geh ans Donauufer zur Stadtwerkstatt – dem Linzer Urgestein autonomer Medienkritik.",
+        teaser="Seit 1979 Gegenpol zum Tech-Optimismus: Utopischer Widerstand gegen Elon Musk und Mars-Kolonien.", waterLiters=3.4,
+        source="STWST Linz × Festival 2026",
+        anchor=dict(kind="history", name="Maindeck", project="For Sun Ra on Saturn (Against Elon on Mars)"),
     ),
 ]
 
@@ -502,9 +516,9 @@ TRIVIA = [
     ),
     dict(
         id="t11",
-        statement="Am Linzer Hauptplatz ist das freie WLAN der Stadt aus Sicherheitsgründen abgeschaltet.",
-        isFact=False,
-        explanation="Slop. Der Hauptplatz betreibt den meistgenutzten Hotspot der ganzen Stadt.",
+        statement="Im offiziellen Festivalprogramm gibt es ein Performance-Projekt namens „The Elon Musk Antagonist“.",
+        isFact=True,
+        explanation="Maria Muhar und Herbert Kotschnig treten mit genau diesem Projekt am Linzer Hauptplatz auf.",
     ),
     dict(
         id="t12",
@@ -526,15 +540,27 @@ TRIVIA = [
     ),
     dict(
         id="t15",
-        statement="Die Radverkehrs-Zählstellen der Stadt erfassen auch, wie viele Menschen zu Fuß über den Hauptplatz gehen.",
-        isFact=False,
-        explanation="Slop. Die Zählstellen zählen Radfahrten. Fußgänger:innen kommen darin nicht vor.",
+        statement="Die Stadtwerkstatt Linz bespielt das Donauufer mit einem Programm gegen die Mars-Kolonisierung von Elon Musk.",
+        isFact=True,
+        explanation="„For Sun Ra on Saturn (Against Elon on Mars)“ steht als Projekt im offiziellen Festivalkatalog.",
     ),
     dict(
         id="t16",
         statement="Im Festivalprogramm stehen 43 Beiträge, die komplett ohne Sprache auskommen.",
         isFact=True,
         explanation="43-mal ist als Sprache „nonverbal“ hinterlegt. Klingt erfunden, steht aber im Export.",
+    ),
+    dict(
+        id="t17",
+        statement="Im Arkadenhof des Linzer Landhauses wird während des Festivals ein geheimes Quantencomputing-Testlabor betrieben.",
+        isFact=False,
+        explanation="Slop. Im Landhaus verhandelt eine reale Bürgerinitiative den immensen Kühlwasserverbrauch von Rechenzentren.",
+    ),
+    dict(
+        id="t18",
+        statement="Die Stadtwerkstatt Linz am Donauufer wurde im selben Jahr gegründet wie das Ars Electronica Festival: 1979.",
+        isFact=True,
+        explanation="Beide Institutionen entstanden 1979 — seither ist die STWST der autonome und medienkritische Gegenpol.",
     ),
 ]
 
@@ -672,6 +698,30 @@ def stats_for(kind: str, row: dict, anchor: dict) -> list[dict]:
             ("Programmslots", str(slots) if slots else ""),
             ("Orte im Export", f"{FESTIVAL_LOCATIONS} insgesamt"),
         ]
+    elif kind == "art":
+        loc = unique(VENUE_BY_NAME, anchor["name"], "Spielort")
+        family = location_family(loc["id"])
+        projects = sum(PROJECTS_AT.get(i, 0) for i in family)
+        area = (LOC_BY_ID.get(loc["id"], {}).get("Area") or "").strip()
+        out += [
+            ("Kunstprojekt", anchor.get("project", "")),
+            ("Künstler:in", anchor.get("artist", "")),
+            ("Festivalbereich", area.title() if area else ""),
+            ("Projekte hier", str(projects) if projects else "1"),
+            ("Format", "Freiluft / Outdoor"),
+        ]
+    elif kind == "history":
+        loc = unique(VENUE_BY_NAME, anchor["name"], "Spielort")
+        family = location_family(loc["id"])
+        projects = sum(PROJECTS_AT.get(i, 0) for i in family)
+        area = (LOC_BY_ID.get(loc["id"], {}).get("Area") or "").strip()
+        out += [
+            ("Historischer Ort", loc.get("name", "")),
+            ("Festival-Projekt", anchor.get("project", "")),
+            ("Festivalbereich", area.title() if area else ""),
+            ("Projekte hier", str(projects) if projects else "1"),
+            ("Bedeutung", "Stadtgeschichte & Diskurs"),
+        ]
     else:
         die(f"kein Kennzahlen-Bauplan für Ankerart {kind!r}")
 
@@ -751,20 +801,23 @@ INFO = {
     "p17": "Das Francisco Carolinum ist das älteste Museum Oberösterreichs und zeigt während "
            "des Festivals zeitgenössische Medienkunst in historischen Räumen. Im Export "
            "hängt daran eine der größeren Programmfamilien des OK Quarter.",
-    "p18": "Die Stadt veröffentlicht die Standorte ihrer öffentlich zugänglichen "
-           "Defibrillatoren mit Betreiber, Gerätetyp und Stockwerk. Dass ein Festivalort "
-           "zugleich ein Eintrag in diesem Datensatz ist, sieht man erst, wenn man beide "
-           "Tabellen übereinanderlegt — und im Ernstfall zählt genau das.",
-    "p19": "Ein Defibrillator ist nur so gut wie das Wissen darum, wo er hängt. Der Datensatz "
-           "nennt das Stockwerk und den Raum, aber keine Öffnungszeit — ob das Gerät nachts "
-           "erreichbar ist, steht nirgends. Solche Lücken findet man nur vor Ort.",
-    "p20": "Der Taubenmarkt ist einer der ältesten Hotspot-Standorte der Stadt und meldet "
-           "seine Nutzung monatlich an den offenen Datensatz. Gezählt werden Verbindungen, "
-           "nicht Menschen — wer zweimal am Tag vorbeigeht, steht zweimal in der Statistik.",
-    "p21": "Der Hauptplatz-Hotspot ist der meistgenutzte der Stadt, und das lässt sich in der "
-           "Nutzungstabelle nachzählen. Das freie Netz der Stadt und die Frage, wie viel "
-           "Wasser eine KI-Abfrage kostet, hängen direkt zusammen: die Verbindung ist "
-           "gratis, die Antwort dahinter nicht.",
+    "p18": "Der Sonnenhof im OK Quarter ist ein versteckter barocker Rückzugsort. Hier "
+           "wird Medienkunst analog und sinnlich: Die Installation Komorebi nutzt "
+           "keine Bildschirme, sondern übersetzt das Spiel des Sonnenlichts durch Baumkronen "
+           "in akustische und kinetische Impulse — Technologie im Dialog mit der Natur.",
+    "p19": "Der Donaupark ist seit den ersten Klangwolken 1979 der Resonanzraum der Linzer "
+           "Medienkunst. Mit SoundPark verwandelt Wolfgang Dorninger das Flussufer in eine "
+           "akustische Landschaft, die auf Schwingungen und Wetter reagiert — Medienkunst "
+           "unter freiem Himmel statt im abgedunkelten White Cube.",
+    "p20": "Das Linzer Landhaus mit seinem prächtigen Renaissance-Arkadenhof von 1568 "
+           "ist das politische Zentrum Oberösterreichs. Hier unterrichtete einst Johannes "
+           "Kepler. Beim Festival wird das Landhaus zum Forum realer Kontroversen: Die "
+           "Bürgerinitiative Kronstorf streitet hier gegen den extremen Wasser- und "
+           "Energiehunger neuer Megarechenzentren.",
+    "p21": "Die Stadtwerkstatt (STWST) am Donauufer direkt gegenüber dem Ars Electronica Center "
+           "wurde 1979 als autonomes Kulturzentrum gegründet. Seit jeher bildet sie den "
+           "kritischen, subversiven Gegenpol zum technologischen Mainstream. Ihr Projekt "
+           "am Maindeck setzt auf kosmischen Widerstand statt Tech-Milliardärs-Utopien.",
     "p22": "Der Bauernberg ist die Geländekante zwischen Innenstadt und Froschberg, und sein "
            "Baumbestand ist entsprechend alt. Der Kataster lässt sich nach Höhe sortieren — "
            "dieser Baum steht dabei sehr weit vorn, und das ist nachgerechnet, nicht "
@@ -820,14 +873,14 @@ AI_GUESS = {
            "bespielt. Das Programm konzentriert sich auf den Campus am Hauptplatz.",
     "p17": "Das Francisco Carolinum zeigt zum Festival eine einzelne Sonderausstellung "
            "mit etwa zehn Arbeiten im zweiten Stock.",
-    "p18": "Im Nordico gibt es keinen öffentlich zugänglichen Defibrillator. Das nächste "
-           "Gerät hängt im Alten Rathaus.",
-    "p19": "Linz hat rund 90 öffentlich registrierte Defibrillatoren. Im OK Kulturquartier "
-           "ist keiner verzeichnet.",
-    "p20": "Der Hotspot am Taubenmarkt wurde 2015 eingerichtet und zählt etwa "
-           "2.000 Verbindungen im Jahr.",
-    "p21": "Das freie WLAN am Hauptplatz gibt es seit 2012. Linz betreibt insgesamt "
-           "rund 40 solcher Hotspots.",
+    "p18": "Der Sonnenhof ist ein privater Innenhof des Bischöflichen Palais und "
+           "während des Festivals für die Öffentlichkeit geschlossen.",
+    "p19": "Im Donaupark finden während der Ars Electronica ausschließlich die abendlichen "
+           "Konzerte statt. Permanente Klanginstallationen gibt es dort nicht.",
+    "p20": "Das Linzer Landhaus dient während des Festivals ausschließlich als "
+           "VIP-Empfangsort der Landesregierung ohne öffentliche Programmpunkte.",
+    "p21": "Das Maindeck der Stadtwerkstatt ist eine reine Gastronomiefläche. Kunstprojekte "
+           "werden dort aus Sicherheitsgründen nicht ausgestellt.",
 }
 
 # Fakt oder Slop wird nicht mehr am Stueck gespielt, sondern haengt an
@@ -845,7 +898,10 @@ TRIVIA_FOR = {
     "p14": ["t5", "t16"],
     "p15": ["t4", "t7"],
     "p17": ["t6"],
-    "p21": ["t11", "t15"],
+    "p18": ["t11"],
+    "p19": ["t15"],
+    "p20": ["t17"],
+    "p21": ["t18"],
 }
 
 

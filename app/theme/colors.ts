@@ -53,8 +53,8 @@ const category = {
   water: '#22D3EE',
   tree: '#A3E635',
   venue: '#FF5FA2',
-  power: '#FFD100',
-  wifi: '#A78BFA',
+  art: '#FFD100',
+  history: '#A78BFA',
 } as const;
 
 export type CategoryKey = keyof typeof category;

@@ -14,9 +14,9 @@ export const CATEGORY_META: Record<
 > = {
   water: { label: 'Trinkwasser', shape: 'circle', color: THEME.category.water },
   tree: { label: 'Baumkataster', shape: 'square', color: THEME.category.tree },
-  venue: { label: 'Spielort', shape: 'triangle', color: THEME.category.venue },
-  power: { label: 'Notfallnetz', shape: 'diamond', color: THEME.category.power },
-  wifi: { label: 'Freies WLAN', shape: 'hexagon', color: THEME.category.wifi },
+  venue: { label: 'Festival-Zentrum', shape: 'triangle', color: THEME.category.venue },
+  art: { label: 'Freiluft-Kunst', shape: 'diamond', color: THEME.category.art },
+  history: { label: 'Zeitzeugen', shape: 'hexagon', color: THEME.category.history },
 };
 
 export const CATEGORY_KEYS = Object.keys(CATEGORY_META) as CategoryKey[];

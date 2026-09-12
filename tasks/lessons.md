@@ -197,3 +197,30 @@ Metro danach einmal mit `npx expo start --clear` starten, sonst liefert der Cach
 **Zweite Lehre:** `await Modul.funktion().catch(...)` faengt nur die Promise. Ist `Modul` selbst
 `undefined`, wirft der Aufruf synchron, die `async`-Funktion lehnt ab, und der Knopf schweigt.
 Deshalb steht in `handleOpenCamera` jetzt ein `try/catch` um den ganzen Ablauf, mit sichtbarem Satz.
+
+## 12.9.2026 — „Karte nicht zoombar", dritter Durchgang: der Zombie-Prozess
+
+**Symptom:** Zoom auf der Karte tot. Zwei frühere Einträge in dieser Datei beschreiben dasselbe
+Fehlerbild, einmal als Neurender-Problem, einmal als alten Paketstand.
+
+**Messung statt Vermutung.** Drei temporäre Logs in `map.tsx` — ein Render-Zähler in `MapCanvas`
+plus `onRegionChangeStart`/`onRegionChangeComplete` mit `longitudeDelta` — beantworteten in einem
+einzigen Pinch, was eine Stunde Lesen im nativen Code nicht konnte:
+
+- `render #1` und sonst nichts: die `memo`-Kette hält, der Neurender-Verdacht ist damit erledigt.
+- Der `longitudeDelta` folgt der Geste monoton (0,090 → 0,042 → 0,016 → 0,012) und springt nie
+  zurück: MapKit klemmt nichts, die native Zoomgrenze liegt bei rund 0,00026 und ist nie in Sicht.
+- `isGesture=false` ist kein Befund: react-native-maps füllt das Feld auf iOS nur, wenn `onPanDrag`
+  gesetzt ist — der zugehörige Recognizer steht in `AIRMapManager.m` auf `enabled = NO`.
+
+**Ursache:** Ein `expo run:ios --device` aus einer früheren Sitzung hing seit über einer Stunde auf
+Port 8081. Auf dem Telefon lief ein alter Build. Prozess beendet, neu gebaut, Zoom geht.
+
+**Regel:** Bei einem Fehlerbild, das in `lessons.md` schon steht, zuerst diese Datei lesen und
+`ps aux | grep expo` prüfen — nicht in `node_modules` graben. Und wenn die statische Analyse nach
+zwei, drei Kandidaten nichts hergibt: instrumentieren. Drei Logzeilen schlagen jede Hypothese.
+
+**Nebenfund, weiterhin offen:** `zoomTapEnabled` fehlt in der Prop-Weiterleitung von
+`RNMapsMapView.mm` und hat auf Apple Maps keine Wirkung. Gleichzeitig registriert
+`AIRMapManager.m:58` einen eigenen Doppeltipp-Recognizer. Sollte Doppeltipp-Zoom je gebraucht
+werden, ist das die Spur — von JS aus nicht abschaltbar.

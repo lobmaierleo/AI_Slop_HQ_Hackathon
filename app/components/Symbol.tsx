@@ -40,6 +40,8 @@ const SYMBOLS = {
   'trophy.fill': 'trophy',
   'arrow.up.left.and.arrow.down.right': 'zoom_out_map',
   'arrow.counterclockwise': 'replay',
+  sparkles: 'auto_awesome',
+  'building.columns.fill': 'account_balance',
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLS;
